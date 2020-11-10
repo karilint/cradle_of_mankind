@@ -1,6 +1,7 @@
 .vscode/
 database.cnf
 config.json
+media/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

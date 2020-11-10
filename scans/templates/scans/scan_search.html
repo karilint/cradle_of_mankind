@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+  <form class="w3-margin" action="{% url 'scan-search' %}" method="GET">
+    <input name="query" type="text" placeholder="{{ query }}">
+    <select name="type">
+      <option value="">Any</option>
+      <option value="accession card">Accession card</option>
+      <option value="accession card, printout I">Accession card, printout</option>
+      <option value="accession card, handwritten">Accession card, handwritten</option>
+      <option value="accession card, small">Accession card, small</option>
+      <option value="accession card, big">Accession card, big</option>
+      <option value="comment slip">Comment slip</option>
+      <option value="other slips">Other slips</option>
+      <option value="other">Other</option>
+    </select>
+    <select name="status">
+      <option value="">Any</option>
+      <option value="waiting">Waiting for upload</option>
+      <option value="progress">In progress</option>
+      <option value="done">JPG done</option>
+    </select>
+    <button class="w3-btn w3-blue w3-round-large" type="submit">Search</button>
+  </form>
+
+  <table class="w3-margin w3-table-all w3-hoverable">
+    <tr>
+      <th>ID</th>
+      <th>TYPE</th>
+      <th>STATUS</th>
+      <th>TEXT</th>
+      <th class="w3-center">DETAILS</th>
+    </tr>
+    {% for scan in scans %}
+        <tr>
+          <td>{{scan.id}}</th>
+          <td>{{scan.type}}</th>
+          <td>{{scan.status}}</th>
+          <td>{{scan.text}}</th>
+          <td class="w3-center">
+            <a class="w3-btn w3-tiny w3-green w3-round-large" href={% url 'scan-detail' scan.id %}>Go!</a>
+          </td>
+        </tr>
+      </a>
+    {% endfor %}
+  </table>
+
+  {% if is_paginated %}
+
+    <div class="w3-bar w3-center">
+      {% if page_obj.has_previous %}
+        <a class="w3-button" href="{{ whole_query }}&page=1">First</a>
+        <a class="w3-button" href="{{ whole_query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <a class="w3-button w3-green" href="{{ whole_query }}&page={{ num }}">{{ num }}</a>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3'%}
+          <a class="w3-button" href="{{ whole_query }}&page={{ num }}">{{ num }}</a>
+        {% endif %}
+      {% endfor%}
+
+      {% if page_obj.has_next %}
+        <a class="w3-button" href="{{ whole_query }}&page={{ page_obj.next_page_number }}">Next</a>
+        <a class="w3-button" href="{{ whole_query }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+      {% endif %}
+    </div>
+
+  {% endif %}
+
+{% endblock content%}
+
+

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+  {% if scan.image %}
+  <a class="w3-margin" href="{{ scan.image.url }} ">
+    <img src="{{ scan.image.url }}" style="max-height:300px">
+  </a>
+  {% endif %}
+
+  <form class="w3-margin" method="POST" style="max-width: 600px">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button class="w3-btn w3-green w3-round-large" type="submit">Confirm edit!</button>
+    <a class="w3-btn w3-red w3-round-large" href={% url 'scan-detail' scan.id %}>Cancel</a>
+  </form>
+
+{% endblock content%}
+

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+  <div>
+    {% if scan.image %}
+    <a class="w3-margin" href="{{ scan.image.url }} ">
+      <img src="{{ scan.image.url }}" style="max-height:300px">
+    </a>
+    {% endif %}
+
+    <table class="w3-table-all w3-hoverable w3-margin" style="max-width: 500px">
+      <tr class="w3-green">
+        <th class="w3-center">Field</th>
+        <th>Value</th>
+      </tr>
+      <tr>
+        <td class="w3-center">TYPE</td>
+        <td>{{ scan.type }}</td>
+      </tr>
+      <tr>
+        <td class="w3-center">STATUS</td>
+        <td>{{ scan.status }}</td>
+      </tr>
+      <tr>
+        <td class="w3-center">TEXT</td>
+        <td>{{ scan.text }}</td>
+      </tr>
+      <tr>
+        <td class="w3-center">CREATED ON</td>
+        <td>{{ scan.created_on }}</td>
+      </tr>
+      <tr>
+        <td class="w3-center">CREATED BY</td>
+        <td>{{ scan.created_by }}</td>
+      </tr>
+      <tr>
+        <td class="w3-center">MODIFIED ON</td>
+        <td>{{ scan.modified_on }}</td>
+      </tr>
+      <tr>
+        <td class="w3-center">MODIFIED BY</td>
+        <td>{{ scan.modified_by }}</td>
+      </tr>
+    </table>
+  </div>
+  <a class="w3-margin w3-btn w3-green w3-round-large" href="{% url 'scan-list' %}">Go back to list</a>
+  {% if user.is_editor or user.is_data_admin %}
+    <a class="w3-btn w3-blue w3-round-large" href="{% url 'scan-edit' scan.id %}">Edit!</a>
+  {% endif %}
+
+{% endblock content%}
+
