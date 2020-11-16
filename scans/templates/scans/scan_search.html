@@ -3,8 +3,10 @@
 {% block content %}
 
   <form class="w3-margin" action="{% url 'scan-search' %}" method="GET">
-    <input name="query" type="text" placeholder="{{ query }}">
-    <select name="type">
+    <label for="text-query">Text search</label>
+    <input name="query" id="text_query" type="text" placeholder="{{ query }}">
+    <label for="type-query">Type</label>
+    <select name="type" id="status-query">
       <option value="">Any</option>
       <option value="accession card">Accession card</option>
       <option value="accession card, printout I">Accession card, printout</option>
@@ -15,7 +17,8 @@
       <option value="other slips">Other slips</option>
       <option value="other">Other</option>
     </select>
-    <select name="status">
+    <label for="status-query">Status</label>
+    <select name="status" id="status-query">
       <option value="">Any</option>
       <option value="waiting">Waiting for upload</option>
       <option value="progress">In progress</option>

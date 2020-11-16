@@ -1,7 +1,11 @@
+from json import load
+
 from django.db.models.query_utils import Q
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import user_passes_test
 from django.urls import reverse
 from .models import Scan
+from .forms import ScanDataImportForm, ScanEditForm
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     UserPassesTestMixin,
@@ -33,7 +37,7 @@ class ScanSearchView(LoginRequiredMixin, ListView):
         scan_list = Scan.objects.filter(
             Q(type__icontains=type),
             Q(status__icontains=status),
-            Q(id__icontains=query) |
+            Q(id__iexact=query) |
             Q(text__icontains=query)
         )
         return scan_list
@@ -53,8 +57,8 @@ class ScanDetailView(LoginRequiredMixin, DetailView):
 
 class ScanEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Scan
+    form_class = ScanEditForm
     context_object_name = 'scan'
-    fields = ['type', 'status', 'text']
 
     def get_success_url(self):
         return reverse('scan-detail', kwargs={'pk': self.object.pk})
@@ -64,3 +68,38 @@ class ScanEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         if user.is_editor or user.is_data_admin:
             return True
         return False
+
+
+def user_is_data_admin(user):
+    return user.is_data_admin
+
+
+@user_passes_test(user_is_data_admin)
+def import_scans(request):
+    if request.method == 'POST':
+        form = ScanDataImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            save_json_to_database(request.FILES['file'], request.user)
+            return redirect('index')
+    else:
+        form = ScanDataImportForm()
+    return render(request, 'scans/scan_import.html', {'form': form})
+
+
+def save_json_to_database(json_file, user):
+    data = load(json_file)
+    data = data['rows']
+    for scan in data:
+        s = Scan()
+        s.id = scan['id']
+        print(f"Scan (id: {s.id}) saved")
+        s.image = f"scans/{s.id}.jpg"
+        s.type = scan['card_type']
+        if not scan['txt']:
+            s.text = ''
+        else:
+            s.text = scan['txt']
+        s.status = scan['STG_STATUS']
+        s.created_by = user
+        s.modified_by = user
+        s.save()
