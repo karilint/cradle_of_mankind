@@ -2,6 +2,16 @@ html,body,h1,h2,h3,h4,h5,h6 {
   font-family: "Roboto", sans-serif;
 }
 
+.flex-container {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 10;
+}
+
+table .detail {
+  max-width: 500px;
+}
+
 .w3-sidebar {
   z-index: 3;
   width: 0px;

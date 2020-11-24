@@ -1,11 +1,13 @@
 from json import load
+from django.contrib import messages
 
 from django.db.models.query_utils import Q
 from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
 from .models import Scan
 from .forms import ScanDataImportForm, ScanEditForm
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     UserPassesTestMixin,
@@ -34,12 +36,20 @@ class ScanSearchView(LoginRequiredMixin, ListView):
         query = self.request.GET.get('query')
         type = self.request.GET.get('type')
         status = self.request.GET.get('status')
-        scan_list = Scan.objects.filter(
-            Q(type__icontains=type),
-            Q(status__icontains=status),
-            Q(id__iexact=query) |
-            Q(text__icontains=query)
-        )
+        if type == '':
+            scan_list = Scan.objects.filter(
+                Q(type__icontains=type),
+                Q(status__icontains=status),
+                Q(id__iexact=query) |
+                Q(text__icontains=query)
+            )
+        else:
+            scan_list = Scan.objects.filter(
+                Q(type__iexact=type),
+                Q(status__icontains=status),
+                Q(id__iexact=query) |
+                Q(text__icontains=query)
+            )
         return scan_list
 
     def get_context_data(self, **kwargs):
@@ -74,12 +84,14 @@ def user_is_data_admin(user):
     return user.is_data_admin
 
 
+@login_required
 @user_passes_test(user_is_data_admin)
 def import_scans(request):
     if request.method == 'POST':
         form = ScanDataImportForm(request.POST, request.FILES)
         if form.is_valid():
             save_json_to_database(request.FILES['file'], request.user)
+            messages.success(request, "Upload succesful!")
             return redirect('index')
     else:
         form = ScanDataImportForm()
@@ -90,7 +102,10 @@ def save_json_to_database(json_file, user):
     data = load(json_file)
     data = data['rows']
     for scan in data:
-        s = Scan()
+        try:
+            s = Scan.objects.get(id=scan['id'])
+        except ObjectDoesNotExist:
+            s = Scan()
         s.id = scan['id']
         print(f"Scan (id: {s.id}) saved")
         s.image = f"scans/{s.id}.jpg"

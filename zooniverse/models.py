@@ -20,7 +20,6 @@ class Classification(models.Model):
     gold_standard = models.CharField(max_length=255, blank=True)
     expert = models.CharField(max_length=255, blank=True)
     meta_data = models.TextField(blank=True)
-    stg_time_stamp = models.DateTimeField(null=True)
 
 
 class Annotation(models.Model):
@@ -30,7 +29,6 @@ class Annotation(models.Model):
     task = models.CharField(max_length=50, blank=True)
     task_label = models.TextField(blank=True)
     value = models.TextField(blank=True)
-    stg_time_stamp = models.DateTimeField(null=True)
 
     class Meta:
         unique_together = [['classification', 'task']]
@@ -49,4 +47,3 @@ class Subject(models.Model):
     updated_at = models.CharField(max_length=255, blank=True)
     retired_at = models.CharField(max_length=255, blank=True)
     retirement_reason = models.CharField(max_length=255, blank=True)
-    stg_time_stamp = models.DateTimeField(null=True)

@@ -1,6 +1,7 @@
 from users.forms import UserSignUpForm, EditorSignUpForm, DataAdminSignUpForm
 from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
+from django.contrib import messages
 
 
 def index(request):
@@ -20,6 +21,8 @@ def normal_signup(request):
             raw_password = form.cleaned_data.get('password1')
             user = authenticate(username=username, password=raw_password)
             login(request, user)
+            messages.success(
+                request, "Normal account created! You have been logged in.")
             return redirect('index')
     else:
         form = UserSignUpForm()
@@ -35,6 +38,8 @@ def editor_signup(request):
             raw_password = form.cleaned_data.get('password1')
             user = authenticate(username=username, password=raw_password)
             login(request, user)
+            messages.success(
+                request, "Editor account created! You have been logged in.")
             return redirect('index')
     else:
         form = EditorSignUpForm()
@@ -50,6 +55,8 @@ def data_admin_signup(request):
             raw_password = form.cleaned_data.get('password1')
             user = authenticate(username=username, password=raw_password)
             login(request, user)
+            messages.success(
+                request, "Data admin account created! You have been logged in.")
             return redirect('index')
     else:
         form = DataAdminSignUpForm()

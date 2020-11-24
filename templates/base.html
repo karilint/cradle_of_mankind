@@ -57,6 +57,13 @@
 <main class="w3-main" >
   <div class="w3-row w3-padding-64">
     <div class="w3-container">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="w3-panel w3-green">
+            <p>{{ message }}</p>
+          </div>
+        {% endfor %}
+      {% endif %}
       {% block content %}{% endblock %}
     </div>
   </div>

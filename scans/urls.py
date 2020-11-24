@@ -15,5 +15,5 @@ urlpatterns = [
     path('<int:pk>/edit/',
          ScanEditView.as_view(template_name="scans/scan_edit.html"),
          name='scan-edit'),
-    path('import/', import_scans, name='scan-import')
+    path('import/', import_scans, name='scan-import'),
 ]

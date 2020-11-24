@@ -12,7 +12,13 @@
     <form class="w3-container w3-padding" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
       {{ form|crispy }}
-      <button class="w3-btn w3-blue w3-round-large" type="submit">Upload!</button>
+      <button name="btn-upload" class="w3-btn w3-blue w3-round-large" type="submit">Upload file!</button>
+    </form>
+
+    <form class="w3-container w3-padding" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <p>Already uploaded the needed files?</p>
+      <button name="btn-update-db" class="w3-btn w3-green w3-round-large" type="submit">Update the database!</button>
     </form>
 
   </div>
