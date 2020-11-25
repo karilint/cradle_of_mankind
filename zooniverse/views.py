@@ -70,7 +70,7 @@ def update_database():
         return False
 
     for file in required_files:
-        with open(os.path.join(imports_path, file)) as f:
+        with open(os.path.join(imports_path, file), encoding='utf8') as f:
             data = DictReader(f)
             print(f"Processing... {file}")
             for index, row in enumerate(data):
@@ -124,34 +124,35 @@ def update_database():
                 try:
                     subject_data = loads(row['subject_data'])
                     for subject_id, subject in subject_data.items():
-                        try:
-                            s = Subject.objects.get(id=subject_id)
-                        except Subject.DoesNotExist:
-                            s = Subject()
-                            s.id = subject_id
                         if subject['retired']:
-                            s.workflow = Workflow.objects.get(
-                                id=subject['retired']['workflow_id'])
-                            s.classification = classification
-                            s.classifications_count = subject['retired']['classifications_count']
-                            s.created_at = eet.localize(datetime.strptime(
-                                subject['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                            s.updated_at = eet.localize(datetime.strptime(
-                                subject['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                            s.retired_at = eet.localize(datetime.strptime(
-                                subject['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                            s.retirement_reason = subject['retired']['retirement_reason']
+                            try:
+                                s = Subject.objects.get(id=subject_id)
+                            except Subject.DoesNotExist:
+                                s = Subject()
+                                s.id = subject['retired']['id']
+                            if subject['retired']:
+                                s.workflow = Workflow.objects.get(
+                                    id=subject['retired']['workflow_id'])
+                                s.classification = classification
+                                s.classifications_count = subject['retired']['classifications_count']
+                                s.created_at = eet.localize(datetime.strptime(
+                                    subject['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                                s.updated_at = eet.localize(datetime.strptime(
+                                    subject['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                                s.retired_at = eet.localize(datetime.strptime(
+                                    subject['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                                s.retirement_reason = subject['retired']['retirement_reason']
 
-                        scan_filename = subject['Filename']
-                        first_digit_idx = -1
-                        for i in range(len(scan_filename)):
-                            if scan_filename[i].isdigit():
-                                first_digit_idx = i
-                                break
-                        scan_id = int(
-                            scan_filename[first_digit_idx:scan_filename.find('.')])
-                        s.scan = Scan.objects.get(id=scan_id)
-                        s.save()
+                            scan_filename = subject['Filename']
+                            first_digit_idx = -1
+                            for i in range(len(scan_filename)):
+                                if scan_filename[i].isdigit():
+                                    first_digit_idx = i
+                                    break
+                            scan_id = int(
+                                scan_filename[first_digit_idx:scan_filename.find('.')])
+                            s.scan = Scan.objects.get(id=scan_id)
+                            s.save()
                 except (JSONDecodeError, KeyError) as e:
                     print(f"ERROR WHEN PARSING SUBJECT DATA (ROW {index})")
                     print(e)
