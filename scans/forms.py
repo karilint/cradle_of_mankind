@@ -29,6 +29,7 @@ class ScanEditForm(forms.ModelForm):
         ("Comment Slip", "Comment slip"),
         ("Other slips II", "Other slips"),
         ("Other", "Other"),
+        ("Unclear", "Unclear"),
     ]
 
     status = forms.ChoiceField(choices=STATUS_CHOICES)
