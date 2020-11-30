@@ -4,12 +4,12 @@
 
 <div class="flex-container">
   {% if scan.image %}
-  <a class="w3-margin" href="{{ scan.image.url }} ">
-    <img src="{{ scan.image.url }}" style="max-width: 95%">
-  </a>
+    <a class="w3-margin scan-image" href="{{ scan.image.url }}" style="max-width: {{ scan.image.width }}px">
+      <img src="{{ scan.image.url }}">
+    </a>
   {% endif %}
-  <div>
-    <table class="w3-table-all w3-hoverable w3-margin detail" style="max-width: 500px">
+  <div class="scan-table w3-margin">
+    <table class="w3-table-all w3-hoverable w3-margin detail-table">
       <tr class="w3-green">
         <th class="w3-center">Field</th>
         <th>Value</th>

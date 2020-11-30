@@ -5,11 +5,22 @@ html,body,h1,h2,h3,h4,h5,h6 {
 .flex-container {
   display: flex;
   flex-wrap: wrap;
-  flex-shrink: 10;
+  justify-content: flex-start;
 }
 
-table .detail {
+.scan-image {
+  flex: 1 1 300px;
+  min-width: 300px;
+}
+
+.scan-table {
+  flex: 1 1 auto;
   max-width: 500px;
+}
+
+.scan-image img {
+  max-width: 100%;
+  height: auto;
 }
 
 .w3-sidebar {

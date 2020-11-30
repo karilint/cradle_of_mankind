@@ -72,88 +72,116 @@ def update_database():
     for file in required_files:
         with open(os.path.join(imports_path, file), encoding='utf8') as f:
             data = DictReader(f)
-            print(f"Processing... {file}")
-            for index, row in enumerate(data):
-                try:
-                    classification = Classification.objects.get(
-                        id=row['classification_id'])
-                except ObjectDoesNotExist:
-                    classification = Classification()
-                    classification.id = row['classification_id']
-                classification.user_name = row['user_name']
-                classification.user_id = row['user_id']
-                classification.user_ip = row['user_ip']
-                classification.workflow_version = row['workflow_version']
+            rows = 0
+            for row in data:
+                rows += 1
+            f.seek(0)
+            data = DictReader(f)
+            print(f"Processing... {file} ({rows} rows)")
+            for index, row in enumerate(data, 1):
+                div = rows//5
+                if (index) % div == 0:
+                    print(f"Processing... {file} ({(2*index)//div}0% done)")
+
                 eet = timezone('Europe/Helsinki')
-                classification.created_at = eet.localize(datetime.strptime(
+                created_at = eet.localize(datetime.strptime(
                     row['created_at'], '%Y-%m-%d %H:%M:%S %Z'))
-                if classification.created_at < eet.localize(datetime(2020, 8, 17, 14, 50, 17)):
+                if created_at < eet.localize(datetime(2020, 8, 17, 14, 50, 17)):
                     continue
-                classification.gold_standard = row['gold_standard']
-                classification.expert = row['expert']
-                classification.meta_data = row['metadata']
 
-                try:
-                    workflow = Workflow.objects.get(id=row['workflow_id'])
-                except Workflow.DoesNotExist:
-                    workflow = Workflow()
-                    workflow.id = row['workflow_id']
-                    workflow.name = row['workflow_name']
-                    workflow.save()
-                classification.workflow = workflow
-                classification.save()
+                workflow = save_workflow_data(index, row)
+                subject = save_subject_data(index, row)
+                classification = save_classification_data(
+                    index, row, workflow, subject)
+                save_annotation_data(index, row, classification)
 
-                try:
-                    annotations_data = loads(row['annotations'])
-                    for annotation in annotations_data:
-                        try:
-                            a = Annotation.objects.get(
-                                task=annotation['task'], classification=classification)
-                        except Annotation.DoesNotExist:
-                            a = Annotation()
-                            a.classification = classification
-                            a.task = annotation['task']
-                        a.task_label = annotation['task_label']
-                        a.value = annotation['value']
-                        a.save()
-                except (JSONDecodeError, KeyError) as e:
-                    print(f"ERROR WHEN PARSING ANNOTATIONS (ROW {index})")
-                    print(index)
-                    print(e)
 
-                try:
-                    subject_data = loads(row['subject_data'])
-                    for subject_id, subject in subject_data.items():
-                        if subject['retired']:
-                            try:
-                                s = Subject.objects.get(id=subject_id)
-                            except Subject.DoesNotExist:
-                                s = Subject()
-                                s.id = subject['retired']['id']
-                            if subject['retired']:
-                                s.workflow = Workflow.objects.get(
-                                    id=subject['retired']['workflow_id'])
-                                s.classification = classification
-                                s.classifications_count = subject['retired']['classifications_count']
-                                s.created_at = eet.localize(datetime.strptime(
-                                    subject['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                                s.updated_at = eet.localize(datetime.strptime(
-                                    subject['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                                s.retired_at = eet.localize(datetime.strptime(
-                                    subject['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                                s.retirement_reason = subject['retired']['retirement_reason']
+def save_workflow_data(index, row):
+    try:
+        workflow = Workflow.objects.get(id=row['workflow_id'])
+    except Workflow.DoesNotExist:
+        workflow = Workflow()
+        workflow.id = row['workflow_id']
+        workflow.name = row['workflow_name']
+        workflow.save()
+    return workflow
 
-                            scan_filename = subject['Filename']
-                            first_digit_idx = -1
-                            for i in range(len(scan_filename)):
-                                if scan_filename[i].isdigit():
-                                    first_digit_idx = i
-                                    break
-                            scan_id = int(
-                                scan_filename[first_digit_idx:scan_filename.find('.')])
-                            s.scan = Scan.objects.get(id=scan_id)
-                            s.save()
-                except (JSONDecodeError, KeyError) as e:
-                    print(f"ERROR WHEN PARSING SUBJECT DATA (ROW {index})")
-                    print(e)
-    return True
+
+def save_subject_data(index, row):
+    try:
+        subject_data = loads(row['subject_data'])
+        for subject_id, subject in subject_data.items():
+            try:
+                s = Subject.objects.get(id=subject_id)
+            except Subject.DoesNotExist:
+                s = Subject()
+                s.id = subject_id
+
+            if subject['retired']:
+                s.classifications_count = subject['retired']['classifications_count']
+                eet = timezone('Europe/Helsinki')
+                s.created_at = eet.localize(datetime.strptime(
+                    subject['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                s.updated_at = eet.localize(datetime.strptime(
+                    subject['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                s.retired_at = eet.localize(datetime.strptime(
+                    subject['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                s.retirement_reason = subject['retired']['retirement_reason']
+
+            scan_filename = subject['Filename']
+            first_digit_idx = -1
+            for i in range(len(scan_filename)):
+                if scan_filename[i].isdigit():
+                    first_digit_idx = i
+                    break
+            scan_id = int(
+                scan_filename[first_digit_idx:scan_filename.find('.')])
+            s.scan = Scan.objects.get(id=scan_id)
+            s.save()
+            return s
+    except (JSONDecodeError, KeyError) as e:
+        print(f"ERROR WHEN PARSING SUBJECT DATA (ROW {index})")
+        print(e)
+
+
+def save_classification_data(index, row, workflow, subject):
+    try:
+        classification = Classification.objects.get(
+            id=row['classification_id'])
+    except ObjectDoesNotExist:
+        classification = Classification()
+        classification.id = row['classification_id']
+    classification.user_name = row['user_name']
+    classification.user_id = row['user_id']
+    classification.user_ip = row['user_ip']
+    classification.workflow_version = row['workflow_version']
+    eet = timezone('Europe/Helsinki')
+    classification.created_at = eet.localize(datetime.strptime(
+        row['created_at'], '%Y-%m-%d %H:%M:%S %Z'))
+    classification.gold_standard = row['gold_standard']
+    classification.expert = row['expert']
+    classification.meta_data = row['metadata']
+    classification.subject = subject
+    classification.workflow = workflow
+    classification.save()
+    return classification
+
+
+def save_annotation_data(index, row, classification):
+    try:
+        annotations_data = loads(row['annotations'])
+        for annotation in annotations_data:
+            try:
+                a = Annotation.objects.get(
+                    task=annotation['task'], classification=classification)
+            except Annotation.DoesNotExist:
+                a = Annotation()
+                a.classification = classification
+                a.task = annotation['task']
+            a.task_label = annotation['task_label']
+            a.value = ' '.join(annotation['value'].split())
+            a.save()
+            return annotation
+    except (JSONDecodeError, KeyError) as e:
+        print(f"ERROR WHEN PARSING ANNOTATIONS (ROW {index})")
+        print(e)
