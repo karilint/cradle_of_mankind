@@ -8,14 +8,20 @@ class Workflow(models.Model):
     name = models.CharField(max_length=255)
 
 
+class Retirement(models.Model):
+    id = models.IntegerField(primary_key=True, unique=True)
+    classifications_count = models.IntegerField(null=True)
+    created_at = models.DateTimeField(null=True)
+    updated_at = models.DateTimeField(null=True)
+    retired_at = models.DateTimeField(null=True)
+    retirement_reason = models.CharField(max_length=255, blank=True)
+
+
 class Subject(models.Model):
     id = models.IntegerField(primary_key=True, unique=True)
     scan = OneToOneField(Scan, on_delete=models.SET_NULL, null=True)
-    classifications_count = models.IntegerField(null=True)
-    created_at = models.CharField(max_length=255, blank=True)
-    updated_at = models.CharField(max_length=255, blank=True)
-    retired_at = models.CharField(max_length=255, blank=True)
-    retirement_reason = models.CharField(max_length=255, blank=True)
+    retirement = models.ForeignKey(Retirement, models.SET_NULL,
+                                   blank=True, null=True)
 
 
 class Classification(models.Model):
@@ -25,6 +31,8 @@ class Classification(models.Model):
     user_ip = models.CharField(max_length=255, blank=True)
     subject = models.ForeignKey(Subject, models.SET_NULL,
                                 blank=True, null=True)
+    retirement = models.ForeignKey(Retirement, models.SET_NULL,
+                                   blank=True, null=True)
     workflow = models.ForeignKey(Workflow, models.SET_NULL,
                                  blank=True, null=True)
     workflow_version = models.CharField(max_length=255, blank=True)

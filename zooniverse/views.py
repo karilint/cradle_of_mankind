@@ -12,7 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import DataImportForm
-from .models import Workflow, Classification, Annotation, Subject
+from .models import Retirement, Workflow, Classification, Annotation, Subject
 
 
 def user_is_data_admin(user):
@@ -90,9 +90,10 @@ def update_database():
                     continue
 
                 workflow = save_workflow_data(index, row)
-                subject = save_subject_data(index, row)
+                retirement = save_retirement_data(index, row)
+                subject = save_subject_data(index, row, retirement)
                 classification = save_classification_data(
-                    index, row, workflow, subject)
+                    index, row, workflow, subject, retirement)
                 save_annotation_data(index, row, classification)
 
 
@@ -107,7 +108,34 @@ def save_workflow_data(index, row):
     return workflow
 
 
-def save_subject_data(index, row):
+def save_retirement_data(index, row):
+    try:
+        subject_data = loads(row['subject_data'])
+        for subject_id, subject in subject_data.items():
+            if subject['retired']:
+                try:
+                    retirement = Retirement.objects.get(
+                        id=subject['retired']['id'])
+                except Retirement.DoesNotExist:
+                    retirement = Retirement()
+                    retirement.id = subject['retired']['id']
+                retirement.classifications_count = subject['retired']['classifications_count']
+                eet = timezone('Europe/Helsinki')
+                retirement.created_at = eet.localize(datetime.strptime(
+                    subject['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                retirement.updated_at = eet.localize(datetime.strptime(
+                    subject['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                retirement.retired_at = eet.localize(datetime.strptime(
+                    subject['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                retirement.retirement_reason = subject['retired']['retirement_reason']
+                retirement.save()
+                return retirement
+    except JSONDecodeError as e:
+        print(f"ERROR WHEN PARSING RETIREMENT DATA (ROW {index})")
+        print(e)
+
+
+def save_subject_data(index, row, retirement):
     try:
         subject_data = loads(row['subject_data'])
         for subject_id, subject in subject_data.items():
@@ -116,18 +144,6 @@ def save_subject_data(index, row):
             except Subject.DoesNotExist:
                 s = Subject()
                 s.id = subject_id
-
-            if subject['retired']:
-                s.classifications_count = subject['retired']['classifications_count']
-                eet = timezone('Europe/Helsinki')
-                s.created_at = eet.localize(datetime.strptime(
-                    subject['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                s.updated_at = eet.localize(datetime.strptime(
-                    subject['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                s.retired_at = eet.localize(datetime.strptime(
-                    subject['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                s.retirement_reason = subject['retired']['retirement_reason']
-
             scan_filename = subject['Filename']
             first_digit_idx = -1
             for i in range(len(scan_filename)):
@@ -137,6 +153,7 @@ def save_subject_data(index, row):
             scan_id = int(
                 scan_filename[first_digit_idx:scan_filename.find('.')])
             s.scan = Scan.objects.get(id=scan_id)
+            s.retirement = retirement
             s.save()
             return s
     except (JSONDecodeError, KeyError) as e:
@@ -144,7 +161,7 @@ def save_subject_data(index, row):
         print(e)
 
 
-def save_classification_data(index, row, workflow, subject):
+def save_classification_data(index, row, workflow, subject, retirement):
     try:
         classification = Classification.objects.get(
             id=row['classification_id'])
@@ -162,6 +179,7 @@ def save_classification_data(index, row, workflow, subject):
     classification.expert = row['expert']
     classification.meta_data = row['metadata']
     classification.subject = subject
+    classification.retirement = retirement
     classification.workflow = workflow
     classification.save()
     return classification
