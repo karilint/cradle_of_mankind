@@ -197,7 +197,8 @@ def save_annotation_data(index, row, classification):
                 a.classification = classification
                 a.task = annotation['task']
             a.task_label = annotation['task_label']
-            a.value = ' '.join(annotation['value'].split())
+            if annotation['value'] is not None:
+                a.value = ' '.join(annotation['value'].split())
             a.save()
     except (JSONDecodeError, KeyError) as e:
         print(f"ERROR WHEN PARSING ANNOTATIONS (ROW {index})")
