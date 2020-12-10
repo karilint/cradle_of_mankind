@@ -44,7 +44,7 @@ def import_data(request):
         if success:
             messages.success(request, "Update was succesful!")
         else:
-            messages.warning(request, "Update couldn't start. Have you uploaded all the required files? (specimen-numbers-classifications.csv, location-and-stratigraphy-classifications.csv, additional-info-classifications.csv, specimen-taxonomy-latin-names-classifications.csv, nature-of-specimen-body-parts-classifications.csv)")
+            messages.warning(request, "Update couldn't start. Have you uploaded all the required files? (specimen-numbers-classifications.csv, location-and-stratigraphy-classifications.csv, additional-info-card-backside-classifications.csv, specimen-taxonomy-latin-names-classifications.csv, nature-of-specimen-body-parts-classifications.csv)")
         redirect('index')
     form = DataImportForm()
     return render(request, 'zooniverse/zooniverse_import.html', {'form': form})
@@ -54,7 +54,7 @@ def update_database():
     required_files = [
         'specimen-numbers-classifications.csv',
         'location-and-stratigraphy-classifications.csv',
-        'additional-info-classifications.csv',
+        'additional-info-card-backside-classifications.csv',
         'specimen-taxonomy-latin-names-classifications.csv',
         'nature-of-specimen-body-parts-classifications.csv'
     ]
