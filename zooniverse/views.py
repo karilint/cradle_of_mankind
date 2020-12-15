@@ -90,11 +90,13 @@ def update_database():
                     continue
 
                 workflow = save_workflow_data(index, row)
-                retirement = save_retirement_data(index, row)
-                subject = save_subject_data(index, row, retirement)
+                subject = save_subject_data(index, row)
+                retirement = save_retirement_data(
+                    index, row, workflow, subject)
                 classification = save_classification_data(
                     index, row, workflow, subject, retirement)
                 save_annotation_data(index, row, classification)
+    return True
 
 
 def save_workflow_data(index, row):
@@ -108,26 +110,28 @@ def save_workflow_data(index, row):
     return workflow
 
 
-def save_retirement_data(index, row):
+def save_retirement_data(index, row, workflow, subject):
     try:
         subject_data = loads(row['subject_data'])
-        for subject_id, subject in subject_data.items():
-            if subject['retired']:
+        for subject_id, subject_row in subject_data.items():
+            if subject_row['retired']:
                 try:
                     retirement = Retirement.objects.get(
-                        id=subject['retired']['id'])
+                        id=subject_row['retired']['id'])
                 except Retirement.DoesNotExist:
                     retirement = Retirement()
-                    retirement.id = subject['retired']['id']
-                retirement.classifications_count = subject['retired']['classifications_count']
+                    retirement.id = subject_row['retired']['id']
+                retirement.classifications_count = subject_row['retired']['classifications_count']
                 eet = timezone('Europe/Helsinki')
                 retirement.created_at = eet.localize(datetime.strptime(
-                    subject['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                    subject_row['retired']['created_at'][:19], '%Y-%m-%dT%H:%M:%S'))
                 retirement.updated_at = eet.localize(datetime.strptime(
-                    subject['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                    subject_row['retired']['updated_at'][:19], '%Y-%m-%dT%H:%M:%S'))
                 retirement.retired_at = eet.localize(datetime.strptime(
-                    subject['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
-                retirement.retirement_reason = subject['retired']['retirement_reason']
+                    subject_row['retired']['retired_at'][:19], '%Y-%m-%dT%H:%M:%S'))
+                retirement.retirement_reason = subject_row['retired']['retirement_reason']
+                retirement.subject = subject
+                retirement.workflow = workflow
                 retirement.save()
                 return retirement
     except JSONDecodeError as e:
@@ -135,7 +139,7 @@ def save_retirement_data(index, row):
         print(e)
 
 
-def save_subject_data(index, row, retirement):
+def save_subject_data(index, row):
     try:
         subject_data = loads(row['subject_data'])
         for subject_id, subject in subject_data.items():
@@ -153,7 +157,6 @@ def save_subject_data(index, row, retirement):
             scan_id = int(
                 scan_filename[first_digit_idx:scan_filename.find('.')])
             s.scan = Scan.objects.get(id=scan_id)
-            s.retirement = retirement
             s.save()
             return s
     except (JSONDecodeError, KeyError) as e:

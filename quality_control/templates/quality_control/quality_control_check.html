@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+  <div class="flex-container">
+    {% if scan.image %}
+    <a class="w3-margin scan-image" href="{{ scan.image.url }}" style="max-width: {{ scan.image.width }}px">
+      <img src="{{ scan.image.url }}" >
+    </a>
+    {% endif %}
+
+    <form class="w3-margin scan-table" method="POST" >
+      {% csrf_token %}
+      {% for question in questions %}
+        {% for label, values in  question.items %}
+          <label for="{{ label }}">{{ label }}:</label><br>
+          <select name="{{ label }}" id="{{ label }}">
+            {% for value in values %}
+              <option value={{ value }}>{{ value }}</option>
+            {% endfor %}
+          </select>
+        {% endfor %}
+      {% endfor %}
+      <button class="w3-btn w3-green w3-round-large" type="submit">Confirm!</button>
+    </form>
+  </div>
+
+{% endblock content%}
+

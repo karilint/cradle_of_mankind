@@ -1,3 +1,4 @@
+from cradle_of_mankind.decorators import remember_last_query_params
 from json import load
 from django.contrib import messages
 
@@ -26,6 +27,7 @@ class ScanListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
 
+# @remember_last_query_params('scan-search', ['query', 'type', 'status'])
 class ScanSearchView(LoginRequiredMixin, ListView):
     model = Scan
     template_name = 'scans/scan_search.html'

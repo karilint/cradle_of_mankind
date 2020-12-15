@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'scans.apps.ScansConfig',
     'zooniverse.apps.ZooniverseConfig',
+    'quality_control.apps.QualityControlConfig',
     'crispy_forms',
     'simple_history',
     'django_userforeignkey',
