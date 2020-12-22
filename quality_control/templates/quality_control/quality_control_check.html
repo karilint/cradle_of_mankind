@@ -14,15 +14,28 @@
       {% csrf_token %}
       {% for question in questions %}
         {% for label, values in  question.items %}
-          <label for="{{ label }}">{{ label }}:</label><br>
-          <select name="{{ label }}" id="{{ label }}">
-            {% for value in values %}
-              <option value={{ value }}>{{ value }}</option>
-            {% endfor %}
-          </select>
+          {% if values.1 != 'green' or values.2 != '' %}
+            <label for="{{ label }}">{{ label }}:</label>
+            <i class='fas fa-plus' style='font-size:20px;color:green;float:right;cursor:pointer' onClick="showHideTextField('{{ label }}')"></i><br>
+            <select class="w3-{{ values.1 }}"name="{{ label }}" id="{{ label }}">
+              {% for answer, count in values.0.items %}
+                {% if count == 1 %}
+                  <option value={{ answer }}>{{ answer }} ({{ count }} answer)</option>
+                {% else %}
+                  <option value={{ answer }}>{{ answer }} ({{ count }} answers)</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            <div id="add-field-{{ label }}" style="display: none;">
+              <input type="text" placeholder="Add a new option to {{ label }}" style="flex: 1;">
+              <button class="w3-btn w3-dark-grey w3-round" type="button" style="margin: 8px 0px;" onClick="addOption('{{ label }}')">Add</button>
+            </div>
+          {% endif %}
         {% endfor %}
       {% endfor %}
-      <button class="w3-btn w3-green w3-round-large" type="submit">Confirm!</button>
+      <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit">Confirm!</button>
+      <button name="next-btn" class="w3-btn w3-blue w3-round-large" type="submit">Confirm and show next</button>
+      <button name="back-btn" class="w3-btn w3-blue w3-round-large" type="submit">Back to list (waiting)</button>
     </form>
   </div>
 

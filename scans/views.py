@@ -108,15 +108,15 @@ def save_json_to_database(json_file, user):
             s = Scan.objects.get(id=scan['id'])
         except ObjectDoesNotExist:
             s = Scan()
-        s.id = scan['id']
+            s.id = scan['id']
+            s.type = scan['card_type']
+            s.status = scan['STG_STATUS']
+            s.image = f"scans/{s.id}.jpg"
+            if not scan['txt']:
+                s.text = ''
+            else:
+                s.text = scan['txt']
+            s.created_by = user
+            s.modified_by = user
+            s.save()
         print(f"Scan (id: {s.id}) saved")
-        s.image = f"scans/{s.id}.jpg"
-        s.type = scan['card_type']
-        if not scan['txt']:
-            s.text = ''
-        else:
-            s.text = scan['txt']
-        s.status = scan['STG_STATUS']
-        s.created_by = user
-        s.modified_by = user
-        s.save()

@@ -19,7 +19,7 @@ class Retirement(models.Model):
                                 blank=True, null=True)
     workflow = models.ForeignKey(Workflow, models.CASCADE,
                                  blank=True, null=True)
-    checked = models.BooleanField(default=False)
+    status = models.CharField(max_length=255, default='to be checked')
     classifications_count = models.IntegerField(null=True)
     created_at = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(null=True)
