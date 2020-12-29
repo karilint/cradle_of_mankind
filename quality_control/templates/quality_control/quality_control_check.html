@@ -3,41 +3,73 @@
 
 {% block content %}
 
-  <div class="flex-container">
-    {% if scan.image %}
-    <a class="w3-margin scan-image" href="{{ scan.image.url }}" style="max-width: {{ scan.image.width }}px">
-      <img src="{{ scan.image.url }}" >
-    </a>
-    {% endif %}
+{% for w in other_workflows %}
+  {% if w.1 == 'checked' %}
+    <a href="{% url 'specimen-numbers-check' w.0.id scan.id %}" class="w3-btn w3-green w3-round-large">{{ w.0.name }}</a>
+  {% elif w.1 == 'waiting' %}
+    <a href="{% url 'specimen-numbers-check' w.0.id scan.id %}" class="w3-btn w3-yellow w3-round-large">{{ w.0.name }}</a>
+  {% else %}
+    <a href="{% url 'specimen-numbers-check' w.0.id scan.id %}" class="w3-btn w3-red w3-round-large">{{ w.0.name }}</a>
+  {% endif %}
+{% endfor %}
 
-    <form class="w3-margin scan-table" method="POST" >
-      {% csrf_token %}
-      {% for question in questions %}
-        {% for label, values in  question.items %}
-          {% if values.1 != 'green' or values.2 != '' %}
-            <label for="{{ label }}">{{ label }}:</label>
-            <i class='fas fa-plus' style='font-size:20px;color:green;float:right;cursor:pointer' onClick="showHideTextField('{{ label }}')"></i><br>
-            <select class="w3-{{ values.1 }}"name="{{ label }}" id="{{ label }}">
+<div class="flex-container">
+  {% if scan.image %}
+  <a class="w3-margin scan-image" href="{{ scan.image.url }}" style="max-width: {{ scan.image.width }}px">
+    <img src="{{ scan.image.url }}">
+  </a>
+  {% endif %}
+
+  <form class="w3-margin scan-table" method="POST">
+    {% csrf_token %}
+    {% for question in questions %}
+      {% for label, values in  question.items %}
+        {% if values.1 != 'green' or values.2 != '' %}
+          <label for="{{ label }}">{{ label }}:</label>
+          {% if not checked %}
+            <i class='fas fa-plus' style='font-size:20px;color:green;float:right;cursor:pointer'
+              onClick="showHideTextField('{{ label }}')"></i><br>
+            <select class="w3-{{ values.1 }}" name="{{ label }}" id="{{ label }}">
               {% for answer, count in values.0.items %}
                 {% if count == 1 %}
-                  <option value={{ answer }}>{{ answer }} ({{ count }} answer)</option>
+                  <option value="{{ answer }}">{{ answer }} &nbsp ({{ count }} answer)</option>
                 {% else %}
-                  <option value={{ answer }}>{{ answer }} ({{ count }} answers)</option>
+                  <option value="{{ answer }}">{{ answer }} &nbsp ({{ count }} answers)</option>
                 {% endif %}
               {% endfor %}
             </select>
-            <div id="add-field-{{ label }}" style="display: none;">
-              <input type="text" placeholder="Add a new option to {{ label }}" style="flex: 1;">
-              <button class="w3-btn w3-dark-grey w3-round" type="button" style="margin: 8px 0px;" onClick="addOption('{{ label }}')">Add</button>
-            </div>
+          {% else %}
+            <select class="w3-grey" name="{{ label }}" id="{{ label }}" disabled>
+              {% for answer, count in values.0.items %}
+                {% if count == 1 %}
+                  <option value="{{ answer }}">{{ answer }}</option>
+                {% else %}
+                  <option value="{{ answer }}">{{ answer }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
           {% endif %}
-        {% endfor %}
+          <div id="add-field-{{ label }}" style="display: none;">
+            <input type="text" placeholder="Add a new option to {{ label }}" style="flex: 1;">
+            <button class="w3-btn w3-dark-grey w3-round" type="button" style="margin: 8px 0px;"
+              onClick="addOption('{{ label }}')">Add</button>
+          </div>
+        {% endif %}
       {% endfor %}
+    {% endfor %}
+    {% if checked %}
+      <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit" disabled="true">Confirm!</button>
+      <button name="next-btn" class="w3-btn w3-blue w3-round-large" type="submit" disabled="true">Confirm and show next</button>
+      <br>
+      <button name="waiting-btn" class="w3-btn w3-blue w3-round-large w3-margin-top" type="submit">Set as waiting</button>
+    {% else %}
       <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit">Confirm!</button>
       <button name="next-btn" class="w3-btn w3-blue w3-round-large" type="submit">Confirm and show next</button>
-      <button name="back-btn" class="w3-btn w3-blue w3-round-large" type="submit">Back to list (waiting)</button>
-    </form>
-  </div>
+      <br>
+      <button name="waiting-btn" class="w3-btn w3-blue w3-round-large w3-margin-top" type="submit">Set as waiting</button>
+    {% endif %}
+    <a class="w3-btn w3-blue w3-round-large w3-margin-top" href={% url 'specimen-numbers'%}>Back to list</a>
+  </form>
+</div>
 
 {% endblock content%}
-

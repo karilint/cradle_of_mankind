@@ -27,11 +27,12 @@
     <div class="w3-dropdown-hover">
       <button class="w3-button">Quality Control</button>
       <div class="w3-dropdown-content w3-bar-block w3-card-4">
-        <a href="{% url 'specimen-numbers' %}" class="w3-bar-item w3-button">Specimen Numbers</a>
-        <a href="#" class="w3-bar-item w3-button">Location and Stratigraphy</a>
-        <a href="#" class="w3-bar-item w3-button">Nature of Specimen Body Parts</a>
-        <a href="#" class="w3-bar-item w3-button">Specimen Taxonomy Latin Names</a>
-        <a href="#" class="w3-bar-item w3-button">Additional Info</a>
+        <a href="{% url 'specimen-numbers' %}?workflow=6400&status=to+be+checked" class="w3-bar-item w3-button">Specimen Numbers</a>
+        <a href="{% url 'specimen-numbers' %}?workflow=6574&status=to+be+checked" class="w3-bar-item w3-button">Location and Stratigraphy</a>
+        <a href="{% url 'specimen-numbers' %}?workflow=6540&status=to+be+checked" class="w3-bar-item w3-button">Nature of Specimen Body Parts</a>
+        <a href="{% url 'specimen-numbers' %}?workflow=6407&status=to+be+checked" class="w3-bar-item w3-button">Specimen Taxonomy Latin Names</a>
+        <a href="{% url 'specimen-numbers' %}?workflow=12713&status=to+be+checked" class="w3-bar-item w3-button">Additional Info</a>
+        {% comment %} <a href="{% url 'summary-list' %}" class="w3-bar-item w3-button">Summary</a> {% endcomment %}
       </div>
     </div>
     <div class="w3-dropdown-hover w3-aritem">
