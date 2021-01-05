@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.fields import AutoField
 from scans.models import Scan
 from zooniverse.models import Retirement
 from django.db.models.deletion import CASCADE
@@ -13,6 +14,7 @@ class FinalAnnotation(models.Model):
 
 
 class Field(models.Model):
+    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255, unique=True)
 
     class Meta:
