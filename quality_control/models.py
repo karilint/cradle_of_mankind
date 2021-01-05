@@ -13,7 +13,7 @@ class FinalAnnotation(models.Model):
 
 
 class Field(models.Model):
-    name = models.TextField(unique=True)
+    name = models.CharField(max_length=255, unique=True)
 
     class Meta:
         ordering = ["name"]
