@@ -10,6 +10,11 @@ function showHideTextField(question) {
   }
 }
 
+function showHideAddNewFieldElement() {
+  var div = document.getElementById('add-field');
+  div.style.display = div.style.display == "none" ? "flex" : "none"
+}
+
 function addOption(question) {
   var div = document.getElementById(`add-field-${question}`);
   var select = document.getElementById(question);

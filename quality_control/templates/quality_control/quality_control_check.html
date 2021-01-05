@@ -3,21 +3,34 @@
 
 {% block content %}
 
-{% for w in other_workflows %}
-  {% if w.1 == 'checked' %}
-    <a href="{% url 'specimen-numbers-check' w.0.id scan.id %}" class="w3-btn w3-green w3-round-large">{{ w.0.name }}</a>
+{% if prev_scan %}
+  <a href="{% url 'quality-control-check' current_workflow.id prev_scan.id %}" class="w3-btn w3-blue w3-round-large w3-margin-bottom">Previous</a>
+{% endif %}
+{% for w in workflows %}
+  {% if w.1 is None %}
+    <button class="w3-btn w3-grey w3-round-large w3-margin-bottom" disabled>{{ w.0.name }}</button>
+  {% elif w.1 == 'checked' %}
+    <a href="{% url 'quality-control-check' w.0.id scan.id %}" class="w3-btn w3-green w3-round-large w3-margin-bottom">{{ w.0.name }}</a>
   {% elif w.1 == 'waiting' %}
-    <a href="{% url 'specimen-numbers-check' w.0.id scan.id %}" class="w3-btn w3-yellow w3-round-large">{{ w.0.name }}</a>
+    <a href="{% url 'quality-control-check' w.0.id scan.id %}" class="w3-btn w3-yellow w3-round-large w3-margin-bottom">{{ w.0.name }}</a>
   {% else %}
-    <a href="{% url 'specimen-numbers-check' w.0.id scan.id %}" class="w3-btn w3-red w3-round-large">{{ w.0.name }}</a>
+    <a href="{% url 'quality-control-check' w.0.id scan.id %}" class="w3-btn w3-red w3-round-large w3-margin-bottom">{{ w.0.name }}</a>
   {% endif %}
 {% endfor %}
+{% if all_checked %}
+  <a href="{% url 'summary-check' scan.id %}" class="w3-btn w3-green w3-round-large w3-margin-bottom">Summary</a>
+{% else %}
+  <button class="w3-btn w3-grey w3-round-large w3-margin-bottom" disabled>Summary</button>
+{% endif %}
+{% if next_scan %}
+  <a href="{% url 'quality-control-check' current_workflow.id next_scan.id %}" class="w3-btn w3-blue w3-round-large w3-margin-bottom">Next</a>
+{% endif %}
 
 <div class="flex-container">
   {% if scan.image %}
-  <a class="w3-margin scan-image" href="{{ scan.image.url }}" style="max-width: {{ scan.image.width }}px">
-    <img src="{{ scan.image.url }}">
-  </a>
+    <a class="w3-margin scan-image" href="{{ scan.image.url }}" style="max-width: {{ scan.image.width }}px">
+      <img src="{{ scan.image.url }}">
+    </a>
   {% endif %}
 
   <form class="w3-margin scan-table" method="POST">
@@ -59,16 +72,11 @@
     {% endfor %}
     {% if checked %}
       <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit" disabled="true">Confirm!</button>
-      <button name="next-btn" class="w3-btn w3-blue w3-round-large" type="submit" disabled="true">Confirm and show next</button>
-      <br>
-      <button name="waiting-btn" class="w3-btn w3-blue w3-round-large w3-margin-top" type="submit">Set as waiting</button>
     {% else %}
       <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit">Confirm!</button>
-      <button name="next-btn" class="w3-btn w3-blue w3-round-large" type="submit">Confirm and show next</button>
-      <br>
-      <button name="waiting-btn" class="w3-btn w3-blue w3-round-large w3-margin-top" type="submit">Set as waiting</button>
     {% endif %}
-    <a class="w3-btn w3-blue w3-round-large w3-margin-top" href={% url 'specimen-numbers'%}>Back to list</a>
+    <button name="waiting-btn" class="w3-btn w3-blue w3-round-large" type="submit">Set as waiting</button>
+    <a class="w3-btn w3-blue w3-round-large" href={% url 'quality-control-list' %}>Back to list</a>
   </form>
 </div>
 

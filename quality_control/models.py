@@ -10,3 +10,10 @@ class FinalAnnotation(models.Model):
     retirement = ForeignKey(Retirement, on_delete=CASCADE, null=True)
     question = models.CharField(max_length=255, blank=True)
     answer = models.TextField(blank=True)
+
+
+class Field(models.Model):
+    name = models.TextField(unique=True)
+
+    class Meta:
+        ordering = ["name"]

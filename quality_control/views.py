@@ -1,19 +1,18 @@
+import operator
 from django.contrib import messages
-from quality_control.models import FinalAnnotation
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.edit import UpdateView
+from quality_control.models import Field, FinalAnnotation
 from scans.models import Scan
 from cradle_of_mankind.decorators import remember_last_query_params
-from django.template.defaulttags import register
+from django.template.defaulttags import find_library, register
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
-from zooniverse.models import Classification, Retirement, Workflow
+from zooniverse.models import Retirement, Subject, Workflow
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 @login_required
-@remember_last_query_params('specimen-numbers', ['page', 'workflow', 'status'])
-def specimen_numbers_list(request):
+@remember_last_query_params('quality-control-list', ['page', 'workflow', 'status'])
+def quality_control_list(request):
     workflows = Workflow.objects.all()
     if request.GET.get('workflow'):
         workflow = Workflow.objects.get(pk=request.GET.get('workflow'))
@@ -37,19 +36,29 @@ def specimen_numbers_list(request):
 
 
 @login_required
-def specimen_numbers_check(request, workflow_pk, scan_pk):
+def quality_control_check(request, workflow_pk, scan_pk):
     workflow = Workflow.objects.get(pk=workflow_pk)
     scan = Scan.objects.get(id=scan_pk)
+    prev_scan, next_scan = get_next_and_prev_scans(request, scan)
     retirement = scan.subject.retirement_set.filter(workflow=workflow).first()
     tasks = get_tasks_for_workflow(workflow)
-    other_workflows = get_other_workflows(workflow, scan)
+    workflows, all_checked = get_all_workflows(scan)
 
     if request.method == 'POST':
         if 'waiting-btn' in request.POST:
             retirement.status = 'waiting'
             retirement.save()
             messages.success(request, "Status set as waiting")
-            return redirect('specimen-numbers-check', scan_pk=scan_pk, workflow_pk=workflow_pk)
+            return redirect('quality-control-check', scan_pk=scan_pk, workflow_pk=workflow_pk)
+        elif 'next-btn' in request.POST:
+            retirements = Retirement.objects.filter(workflow=workflow)
+            retirements = retirements.filter(status='to be checked')
+            retirements = retirements.filter(
+                subject__scan__id__gt=scan.id).order_by('subject__scan__id')
+            next_retirement = retirements.first().subject.scan
+            if next_retirement is None:
+                return redirect('quality-control-list')
+            return redirect('quality-control-check', scan_pk=next_retirement.id, workflow_pk=workflow.id)
         retirement.status = 'checked'
         retirement.save()
         for question in tasks.values():
@@ -61,24 +70,106 @@ def specimen_numbers_check(request, workflow_pk, scan_pk):
                 final.question = question
                 final.answer = answer
                 final.save()
-        if 'next-btn' in request.POST:
-            retirements = Retirement.objects.filter(workflow=workflow)
-            retirements = retirements.filter(status='to be checked')
-            retirements = retirements.filter(
-                subject__scan__id__gt=scan.id).order_by('subject__scan__id')
-            next_retirement = retirements.first().subject.scan
-            if next_retirement is None:
-                return redirect('specimen-numbers')
-            return redirect('specimen-numbers-check', scan_pk=next_retirement.id, workflow_pk=workflow.id)
-        return redirect('specimen-numbers')
+        return redirect('quality-control-check', scan_pk=scan.id, workflow_pk=workflow.id)
     checked = retirement.status == 'checked'
     if not checked:
         questions = get_questions_and_values(retirement, tasks)
     else:
         questions = get_final_annotations(retirement, tasks)
+    print(prev_scan)
+    print(next_scan)
     return render(request, 'quality_control/quality_control_check.html',
-                  {'scan': scan, 'questions': questions,
-                   'checked': checked, 'other_workflows': other_workflows})
+                  {'current_workflow': workflow,
+                   'scan': scan,
+                   'prev_scan': prev_scan,
+                   'next_scan': next_scan,
+                   'questions': questions,
+                   'checked': checked,
+                   'workflows': workflows,
+                   'all_checked': all_checked})
+
+
+@login_required
+@remember_last_query_params('summary-list', ['page'])
+def summary_list(request):
+    workflows = Workflow.objects.all()
+    scans = get_scans(request)
+    statuses = {}
+    for scan in scans:
+        workflows_dict = {}
+        try:
+            retirements = scan.subject.retirement_set.all()
+            for workflow in workflows:
+                if len(retirements.filter(workflow=workflow)) == 0:
+                    workflows_dict[workflow] = {
+                        'status': 'NA', 'color': 'grey'}
+                else:
+                    r = retirements.filter(workflow=workflow).first()
+                    workflows_dict[workflow] = {'status': r.status}
+                    if r.status == 'checked':
+                        workflows_dict[workflow]['color'] = 'green'
+                    elif r.status == 'waiting':
+                        workflows_dict[workflow]['color'] = 'yellow'
+                    else:
+                        workflows_dict[workflow]['color'] = 'red'
+        except Subject.DoesNotExist:
+            for workflow in workflows:
+                workflows_dict[workflow] = {'status': 'NA', 'color': 'grey'}
+        statuses[scan] = workflows_dict
+    return render(request, 'quality_control/summary_list.html',
+                  {'workflows': workflows,
+                   'statuses': statuses,
+                   'page_obj': scans})
+
+
+@login_required
+def summary_check(request, scan_pk):
+    scan = Scan.objects.get(pk=scan_pk)
+    if request.method == 'POST':
+        if 'add-field-btn' in request.POST:
+            field_name = request.POST.get('field-name', '')
+            try:
+                Field.objects.get(name=field_name)
+            except Field.DoesNotExist:
+                if field_name:
+                    field = Field()
+                    field.name = field_name
+                    field.save()
+            messages.success(request, "Field added")
+        elif 'add-content-btn' in request.POST:
+            field_name = request.POST.get('field', '')
+            field_content = request.POST.get('field-content', '')
+            final_annotation = scan.finalannotation_set.filter(
+                question=field_name).first()
+            if final_annotation:
+                final_annotation.answer = field_content
+                final_annotation.save()
+            else:
+                final_annotation = FinalAnnotation()
+                final_annotation.scan = scan
+                final_annotation.question = field_name
+                final_annotation.answer = field_content
+                final_annotation.save()
+        return redirect('summary-check', scan_pk=scan.id)
+    try:
+        prev_scan = Scan.objects.get(pk=scan_pk-1)
+    except Scan.DoesNotExist:
+        prev_scan = None
+    try:
+        next_scan = Scan.objects.get(pk=scan_pk+1)
+    except Scan.DoesNotExist:
+        next_scan = None
+    workflows, all_checked = get_all_workflows(scan)
+    annotations = FinalAnnotation.objects.filter(scan=scan)
+    fields = Field.objects.all()
+    return render(request, 'quality_control/summary_check.html',
+                  {'scan': scan,
+                   'prev_scan': prev_scan,
+                   'next_scan': next_scan,
+                   'annotations': annotations,
+                   'workflows': workflows,
+                   'fields': fields,
+                   'all_checked': all_checked})
 
 
 def get_retirements(request, workflow):
@@ -96,11 +187,8 @@ def get_retirements(request, workflow):
         except:
             pass
     retirement_list = retirement_list.order_by('subject__scan__id')
-
     page = request.GET.get('page', 1)
-
     paginator = Paginator(retirement_list, 10)
-
     try:
         retirements = paginator.page(page)
     except PageNotAnInteger:
@@ -108,6 +196,38 @@ def get_retirements(request, workflow):
     except EmptyPage:
         retirements = paginator.page(paginator.num_pages)
     return retirements
+
+
+def get_scans(request):
+    query = request.GET.get('query')
+    if query:
+        scans_list = Scan.objects.filter(pk=query)
+    else:
+        scans_list = Scan.objects.all()
+    page = request.GET.get('page', 1)
+    paginator = Paginator(scans_list, 15)
+    try:
+        scans = paginator.page(page)
+    except PageNotAnInteger:
+        scans = paginator.page(1)
+    except EmptyPage:
+        scans = paginator.page(paginator.num_pages)
+    return scans
+
+
+def get_next_and_prev_scans(request, scan):
+    workflow_id = request.session['quality-control-list_workflow']
+    workflow = Workflow.objects.get(pk=workflow_id)
+    status = request.session['quality-control-list_status']
+    retirement_list = Retirement.objects.filter(workflow=workflow)
+    retirement_list = retirement_list.filter(status=status)
+    prev_item = retirement_list.filter(
+        subject__scan__id__lt=scan.id).order_by('-subject__scan__id')[:1].first()
+    next_item = retirement_list.filter(
+        subject__scan__id__gt=scan.id).order_by('subject__scan__id')[:1].first()
+    prev_scan = prev_item.subject.scan if prev_item else None
+    next_scan = next_item.subject.scan if next_item else None
+    return prev_scan, next_scan
 
 
 def get_counts_and_colors(retirements, tasks):
@@ -160,61 +280,28 @@ def get_tasks_for_workflow(workflow):
     elif workflow.name == 'Additional info (Card backside)':
         header = ['Reference', 'Coordinates', 'Photo', 'Other']
         tasks = ['T4', 'T5', 'T6', 'T7']
+    else:
+        header = []
+        tasks = []
     return {tasks[i]: header[i] for i in range(len(tasks))}
 
 
-def get_other_workflows(workflow, scan):
-    other_workflows = []
-    retirements = scan.subject.retirement_set.all()
-    all_checked = True
-    for r in retirements:
-        print(f"{r.workflow.name}: {r.status}")
-        if r.status != 'checked':
-            all_checked = False
-        other_workflows.append((r.workflow, r.status))
-    return other_workflows
-
-
-def summary(request):
+def get_all_workflows(scan):
     workflows = Workflow.objects.all()
-    scan_list = Scan.objects.all()
-
-    page = request.GET.get('page', 1)
-
-    paginator = Paginator(retirement_list, 10)
-
-    try:
-        scans = paginator.page(page)
-    except PageNotAnInteger:
-        scans = paginator.page(1)
-    except EmptyPage:
-        scans = paginator.page(paginator.num_pages)
-
-    statuses = {}
-    for scan in scans:
-        workflows_dict = {}
-        try:
-            retirements = scan.subject.retirement_set.all()
-            for workflow in workflows:
-                if len(retirements.filter(workflow=workflow)) == 0:
-                    workflows_dict[workflow] = 'red'
-                else:
-                    r = retirements.filter(workflow=workflow).first()
-                    if r.status == 'checked':
-                        workflows_dict[workflow] = 'green'
-                    elif r.status == 'waiting':
-                        workflows_dict[workflow] = 'yellow'
-                    else:
-                        workflows_dict[workflow] = 'red'
-        except Subject.DoesNotExist:
-            for workflow in workflows:
-                workflows_dict[workflow] = 'red'
-        statuses[scan] = workflows_dict
-
-    return render(request, 'quality_control/quality_control_summary.html',
-                  {'workflows': workflows,
-                   'statuses': statuses,
-                   'page_obj': scans})
+    all_workflows = []
+    all_checked = True
+    for workflow in workflows:
+        retirement = scan.subject.retirement_set.filter(
+            workflow=workflow).first()
+        if retirement is None:
+            all_checked = False
+            all_workflows.append((workflow, None))
+        else:
+            status = retirement.status
+            if status != 'checked':
+                all_checked = False
+            all_workflows.append((workflow, status))
+    return all_workflows, all_checked
 
 
 def get_final_annotations(retirement, tasks):

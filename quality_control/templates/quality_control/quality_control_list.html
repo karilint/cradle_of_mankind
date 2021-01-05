@@ -2,16 +2,17 @@
 {% load static %}
 
 {% block content %}
-  <form class="w3-margin" action="{% url 'specimen-numbers' %}" method="GET">
-    <label for="text-query">Search for specific scan</label>
+
+  <form class="w3-margin" action="{% url 'quality-control-list' %}" method="GET">
+    <label for="text-query">Search for specific scan:</label>
     <input name="query" id="text_query" type="text" placeholder="Search scan id...">
-    <label for="workflow-query">Workflow</label>
+    <label for="workflow-query">Workflow:</label>
     <select name="workflow" id="workflow-query">
       {% for workflow in workflows %}
         <option value="{{ workflow.id}}">{{workflow.name}}</option>
       {% endfor %}
     </select>
-    <label for="status-query">Status</label>
+    <label for="status-query">Status:</label>
     <select name="status" id="status-query">
       <option value="to be checked">to be checked</option>
       <option value="waiting">waiting</option>
@@ -30,10 +31,14 @@
     </tr>
     {% for retirement in page_obj %}
         <tr class="w3-center">
-          <td class="w3-center w3-teal"><a href={% url 'specimen-numbers-check' retirement.workflow.id retirement.subject.scan.id  %}>{{ retirement.subject.scan.id }}</a></td>
-          <td class="w3-center w3-teal">{{ retirement.status }}</td>
+          <td class="w3-center"><a style="display: block; width: 100%; height: 100%; text-decoration: none;" href={% url 'quality-control-check' retirement.workflow.id retirement.subject.scan.id  %}>{{ retirement.subject.scan.id }}</a></td>
+          <td class="w3-center"><a style="display: block; width: 100%; height: 100%; text-decoration: none;" href={% url 'quality-control-check' retirement.workflow.id retirement.subject.scan.id  %}>{{ retirement.status }}</a></td>
           {% for color in colors|get_item:retirement %}
-            <td class="w3-{{ color }} w3-center">{{values|get_item:retirement}}</td>
+            <td class="w3-center">
+              <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href={% url 'quality-control-check' retirement.workflow.id retirement.subject.scan.id  %}>
+                <span style="background: {{ color }}; border-radius: 0.5em; padding: 2px 15px">{{values|get_item:retirement}}</span>
+              </a>
+            </td>
           {% endfor %}
         </tr>
       </a>
@@ -50,7 +55,7 @@
 
       {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
-          <a class="w3-button w3-green" href="{{ whole_query }}&page={{ num }}">{{ num }}</a>
+          <a class="w3-button w3-dark-grey w3-margin" href="{{ whole_query }}&page={{ num }}">{{ num }}</a>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3'%}
           <a class="w3-button" href="{{ whole_query }}&page={{ num }}">{{ num }}</a>
         {% endif %}

@@ -3,6 +3,7 @@ import os
 from json import loads
 from csv import DictReader
 from datetime import datetime
+from quality_control.models import Field
 
 from django.contrib import messages
 from scans.models import Scan
@@ -203,6 +204,16 @@ def save_annotation_data(index, row, classification):
             if annotation['value'] is not None:
                 a.value = ' '.join(annotation['value'].split())
             a.save()
+            update_fields(a.task)
     except (JSONDecodeError, KeyError) as e:
         print(f"ERROR WHEN PARSING ANNOTATIONS (ROW {index})")
         print(e)
+
+
+def update_fields(name):
+    try:
+        Field.objects.get(name=name)
+    except Field.DoesNotExist:
+        field = Field()
+        field.name = name
+        field.save()
