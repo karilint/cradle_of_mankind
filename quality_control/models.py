@@ -13,8 +13,7 @@ class FinalAnnotation(models.Model):
     answer = models.TextField(blank=True)
 
 
-class Field(models.Model):
-    id = models.AutoField(primary_key=True)
+class AnnotationField(models.Model):
     name = models.CharField(max_length=255, unique=True)
 
     class Meta:
