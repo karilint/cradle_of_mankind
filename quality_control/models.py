@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.fields import AutoField
 from scans.models import Scan
 from zooniverse.models import Retirement
 from django.db.models.deletion import CASCADE
@@ -12,8 +13,8 @@ class FinalAnnotation(models.Model):
     answer = models.TextField(blank=True)
 
 
-class Field(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+class AnnotationField(models.Model):
+    name = models.CharField(max_length=255)
 
     class Meta:
         ordering = ["name"]

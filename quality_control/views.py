@@ -1,6 +1,5 @@
-import operator
 from django.contrib import messages
-from quality_control.models import Field, FinalAnnotation
+from quality_control.models import AnnotationField, FinalAnnotation
 from scans.models import Scan
 from cradle_of_mankind.decorators import remember_last_query_params
 from django.template.defaulttags import find_library, register
@@ -129,10 +128,10 @@ def summary_check(request, scan_pk):
         if 'add-field-btn' in request.POST:
             field_name = request.POST.get('field-name', '')
             try:
-                Field.objects.get(name=field_name)
-            except Field.DoesNotExist:
+                AnnotationField.objects.get(name=field_name)
+            except AnnotationField.DoesNotExist:
                 if field_name:
-                    field = Field()
+                    field = AnnotationField()
                     field.name = field_name
                     field.save()
             messages.success(request, "Field added")
@@ -161,7 +160,7 @@ def summary_check(request, scan_pk):
         next_scan = None
     workflows, all_checked = get_all_workflows(scan)
     annotations = FinalAnnotation.objects.filter(scan=scan)
-    fields = Field.objects.all()
+    fields = AnnotationField.objects.all()
     return render(request, 'quality_control/summary_check.html',
                   {'scan': scan,
                    'prev_scan': prev_scan,

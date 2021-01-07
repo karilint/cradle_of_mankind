@@ -3,7 +3,7 @@ import os
 from json import loads
 from csv import DictReader
 from datetime import datetime
-from quality_control.models import Field
+from quality_control.models import AnnotationField
 
 from django.contrib import messages
 from scans.models import Scan
@@ -212,8 +212,8 @@ def save_annotation_data(index, row, classification):
 
 def update_fields(name):
     try:
-        Field.objects.get(name=name)
-    except Field.DoesNotExist:
-        field = Field()
+        AnnotationField.objects.get(name=name)
+    except AnnotationField.DoesNotExist:
+        field = AnnotationField()
         field.name = name
         field.save()
