@@ -42,14 +42,21 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'users.apps.UsersConfig',
     'scans.apps.ScansConfig',
     'zooniverse.apps.ZooniverseConfig',
     'quality_control.apps.QualityControlConfig',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.orcid',
     'crispy_forms',
     'simple_history',
     'django_userforeignkey',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -80,6 +87,24 @@ TEMPLATES = [
         },
     },
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+SOCIALACCOUNT_PROVIDERS = {
+    'orcid': {
+        'BASE_DOMAIN': 'orcid.org',
+        'MEMBER_API': False,
+    }
+}
+
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 
 WSGI_APPLICATION = 'cradle_of_mankind.wsgi.application'
 
@@ -148,9 +173,10 @@ MEDIA_URL = '/media/'
 
 LOGIN_REDIRECT_URL = 'index'
 
-LOGIN_URL = 'login'
+LOGIN_URL = 'account_login'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = config.get('EMAIL_BACKEND')
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

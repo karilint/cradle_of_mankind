@@ -71,11 +71,12 @@
       {% endfor %}
     {% endfor %}
     {% if checked %}
-      <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit" disabled="true">Confirm!</button>
+      <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit" disabled>Confirm!</button>
+      <button name="waiting-btn" class="w3-btn w3-blue w3-round-large" type="submit" disabled>Set as waiting</button>
     {% else %}
       <button name="confirm-btn" class="w3-btn w3-blue w3-round-large" type="submit">Confirm!</button>
+      <button name="waiting-btn" class="w3-btn w3-blue w3-round-large" type="submit">Set as waiting</button>
     {% endif %}
-    <button name="waiting-btn" class="w3-btn w3-blue w3-round-large" type="submit">Set as waiting</button>
     <a class="w3-btn w3-blue w3-round-large" href={% url 'quality-control-list' %}>Back to list</a>
   </form>
 </div>

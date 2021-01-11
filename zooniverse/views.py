@@ -97,6 +97,7 @@ def update_database():
                 classification = save_classification_data(
                     index, row, workflow, subject, retirement)
                 save_annotation_data(index, row, classification)
+    update_annotation_fields()
     return True
 
 
@@ -204,16 +205,21 @@ def save_annotation_data(index, row, classification):
             if annotation['value'] is not None:
                 a.value = ' '.join(annotation['value'].split())
             a.save()
-            update_fields(a.task)
     except (JSONDecodeError, KeyError) as e:
         print(f"ERROR WHEN PARSING ANNOTATIONS (ROW {index})")
         print(e)
 
 
-def update_fields(name):
-    try:
-        AnnotationField.objects.get(name=name)
-    except AnnotationField.DoesNotExist:
-        field = AnnotationField()
-        field.name = name
-        field.save()
+def update_annotation_fields():
+    fields = ['Locality', 'SITE/AREA', 'Formation', 'Mbr/Horizon/Etc.',
+              'Photo', 'Coordinates', 'Pfx', 'AN', 'FN', 'FN (Pre)',
+              'Shelf', 'Date', 'Published', 'Type', 'PTO', 'Body parts',
+              'Fragments', 'Taxon', 'Family', 'Subfamily', 'Tribe', 'Genus',
+              'Species', 'Reference', 'Coordinates', 'Photo', 'Other']
+    for name in fields:
+        try:
+            AnnotationField.objects.get(name=name)
+        except AnnotationField.DoesNotExist:
+            field = AnnotationField()
+            field.name = name
+            field.save()
