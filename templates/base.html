@@ -23,25 +23,29 @@
   <div class="w3-bar w3-theme w3-left-align w3-large">
     <a class="w3-bar-item w3-button w3-right w3-hide-large  w3-hide-medium w3-hover-white w3-large w3-theme-l1" href="javascript:void(0)" onclick="w3_open()"><i class="fa fa-bars"></i></a>
     <a href="{% url 'index' %}" class="w3-bar-item w3-button w3-theme-l1">Cradle of Mankind</a>
-    <a href="{% url 'scan-list' %}" class="w3-aritem w3-button w3-hover-white w3-hide-small">Scans</a>
-    <div class="w3-dropdown-hover">
-      <button class="w3-button">Quality Control</button>
-      <div class="w3-dropdown-content w3-bar-block w3-card-4">
-        <a href="{% url 'quality-control-list' %}?workflow=6400&status=to+be+checked" class="w3-bar-item w3-button">Specimen Numbers</a>
-        <a href="{% url 'quality-control-list' %}?workflow=6407&status=to+be+checked" class="w3-bar-item w3-button">Specimen Taxonomy (Latin Names)</a>
-        <a href="{% url 'quality-control-list' %}?workflow=6540&status=to+be+checked" class="w3-bar-item w3-button">Nature of Specimen (Body Parts)</a>
-        <a href="{% url 'quality-control-list' %}?workflow=6574&status=to+be+checked" class="w3-bar-item w3-button">Location and Stratigraphy</a>
-        <a href="{% url 'quality-control-list' %}?workflow=12713&status=to+be+checked" class="w3-bar-item w3-button">Additional Info (Card Backside)</a>
-        <a href="{% url 'summary-list' %}" class="w3-bar-item w3-button">Summary</a>
+    {% if user.is_data_admin or user.is_editor %}
+      <a href="{% url 'scan-list' %}" class="w3-aritem w3-button w3-hover-white w3-hide-small">Scans</a>
+      <div class="w3-dropdown-hover">
+        <button class="w3-button">Quality Control</button>
+        <div class="w3-dropdown-content w3-bar-block w3-card-4">
+          <a href="{% url 'quality-control-list' %}?workflow=6400&status=to+be+checked" class="w3-bar-item w3-button">Specimen Numbers</a>
+          <a href="{% url 'quality-control-list' %}?workflow=6407&status=to+be+checked" class="w3-bar-item w3-button">Specimen Taxonomy (Latin Names)</a>
+          <a href="{% url 'quality-control-list' %}?workflow=6540&status=to+be+checked" class="w3-bar-item w3-button">Nature of Specimen (Body Parts)</a>
+          <a href="{% url 'quality-control-list' %}?workflow=6574&status=to+be+checked" class="w3-bar-item w3-button">Location and Stratigraphy</a>
+          <a href="{% url 'quality-control-list' %}?workflow=12713&status=to+be+checked" class="w3-bar-item w3-button">Additional Info (Card Backside)</a>
+          <a href="{% url 'summary-list' %}" class="w3-bar-item w3-button">Summary</a>
+        </div>
       </div>
-    </div>
-    <div class="w3-dropdown-hover w3-aritem">
-      <button class="w3-button">Import</button>
-      <div class="w3-dropdown-content w3-bar-block w3-card-4">
-        <a href="{% url 'scan-import' %}" class="w3-bar-item w3-button">Scan Data</a>
-        <a href="{% url 'import-data' %}" class="w3-bar-item w3-button">Zooniverse Data</a>
+    {% endif %}
+    {% if user.is_data_admin %}
+      <div class="w3-dropdown-hover w3-aritem">
+        <button class="w3-button">Import</button>
+        <div class="w3-dropdown-content w3-bar-block w3-card-4">
+          <a href="{% url 'scan-import' %}" class="w3-bar-item w3-button">Scan Data</a>
+          <a href="{% url 'import-data' %}" class="w3-bar-item w3-button">Zooniverse Data</a>
+        </div>
       </div>
-    </div>
+    {% endif %}
     {% if user.is_authenticated %}
       <a href="{% url 'account_logout' %}" class="w3-bar-item w3-button w3-right w3-hover-white w3-hide-small">Logout</a>
     {% else %}

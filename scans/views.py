@@ -1,4 +1,5 @@
 from cradle_of_mankind.decorators import remember_last_query_params
+from users.views import user_is_data_admin
 from json import load
 from django.contrib import messages
 
@@ -20,15 +21,18 @@ from django.views.generic import (
 )
 
 
-class ScanListView(LoginRequiredMixin, ListView):
+class ScanListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Scan
     template_name = 'scan_list.html'
     context_object_name = 'scans'
     paginate_by = 10
 
+    def test_func(self):
+        user = self.request.user
+        return user.is_data_admin or user.is_editor
 
-# @remember_last_query_params('scan-search', ['query', 'type', 'status'])
-class ScanSearchView(LoginRequiredMixin, ListView):
+
+class ScanSearchView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Scan
     template_name = 'scans/scan_search.html'
     context_object_name = 'scans'
@@ -62,9 +66,17 @@ class ScanSearchView(LoginRequiredMixin, ListView):
         context['whole_query'] = f"?query={context['query']}&type={context['type']}&status={context['status']}"
         return context
 
+    def test_func(self):
+        user = self.request.user
+        return user.is_data_admin or user.is_editor
 
-class ScanDetailView(LoginRequiredMixin, DetailView):
+
+class ScanDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Scan
+
+    def test_func(self):
+        user = self.request.user
+        return user.is_data_admin or user.is_editor
 
 
 class ScanEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -77,13 +89,7 @@ class ScanEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         user = self.request.user
-        if user.is_editor or user.is_data_admin:
-            return True
-        return False
-
-
-def user_is_data_admin(user):
-    return user.is_data_admin
+        return user.is_data_admin or user.is_editor
 
 
 @login_required

@@ -1,15 +1,18 @@
+from datetime import datetime
 from django.contrib import messages
 from quality_control.models import AnnotationField, FinalAnnotation
+from users.views import user_is_data_admin_or_editor
 from scans.models import Scan
 from cradle_of_mankind.decorators import remember_last_query_params
 from django.template.defaulttags import find_library, register
 from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from zooniverse.models import Retirement, Subject, Workflow
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 @login_required
+@user_passes_test(user_is_data_admin_or_editor)
 @remember_last_query_params('quality-control-list', ['page', 'workflow', 'status'])
 def quality_control_list(request):
     workflows = Workflow.objects.all()
@@ -35,6 +38,7 @@ def quality_control_list(request):
 
 
 @login_required
+@user_passes_test(user_is_data_admin_or_editor)
 def quality_control_check(request, workflow_pk, scan_pk):
     workflow = Workflow.objects.get(pk=workflow_pk)
     scan = Scan.objects.get(id=scan_pk)
@@ -49,16 +53,9 @@ def quality_control_check(request, workflow_pk, scan_pk):
             retirement.save()
             messages.success(request, "Status set as waiting")
             return redirect('quality-control-check', scan_pk=scan_pk, workflow_pk=workflow_pk)
-        elif 'next-btn' in request.POST:
-            retirements = Retirement.objects.filter(workflow=workflow)
-            retirements = retirements.filter(status='to be checked')
-            retirements = retirements.filter(
-                subject__scan__id__gt=scan.id).order_by('subject__scan__id')
-            next_retirement = retirements.first().subject.scan
-            if next_retirement is None:
-                return redirect('quality-control-list')
-            return redirect('quality-control-check', scan_pk=next_retirement.id, workflow_pk=workflow.id)
         retirement.status = 'checked'
+        retirement.checked_on = datetime.now()
+        retirement.checked_by = request.user
         retirement.save()
         for question in tasks.values():
             answer = request.POST.get(question, None)
@@ -75,8 +72,6 @@ def quality_control_check(request, workflow_pk, scan_pk):
         questions = get_questions_and_values(retirement, tasks)
     else:
         questions = get_final_annotations(retirement, tasks)
-    print(prev_scan)
-    print(next_scan)
     return render(request, 'quality_control/quality_control_check.html',
                   {'current_workflow': workflow,
                    'scan': scan,
@@ -89,6 +84,7 @@ def quality_control_check(request, workflow_pk, scan_pk):
 
 
 @login_required
+@user_passes_test(user_is_data_admin_or_editor)
 @remember_last_query_params('summary-list', ['page'])
 def summary_list(request):
     workflows = Workflow.objects.all()
@@ -122,6 +118,7 @@ def summary_list(request):
 
 
 @login_required
+@user_passes_test(user_is_data_admin_or_editor)
 def summary_check(request, scan_pk):
     scan = Scan.objects.get(pk=scan_pk)
     if request.method == 'POST':

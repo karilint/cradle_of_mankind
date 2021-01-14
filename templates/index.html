@@ -6,11 +6,11 @@
     <h1>Hello {{ user.first_name }}!</h1>
     <h4>You are a data admin!</h4>
   {% elif user.is_editor %}
-    <h1>Hello {{ user.username }}!</h1>
+    <h1>Hello {{ user.first_name }}!</h1>
     <h4>You are an editor!</h4>
   {% elif user.is_authenticated %}
-    <h1>Hello {{ user.username }}!</h1>
-    <h4>You are a normal user</h4>
+    <h1>Hello {{ user.first_name }}!</h1>
+    <h4>You don't have any given privileges yet. Please contact the maintainer of the website.</h4>
   {% else %}
     <h1>Hello there!</h1>
     <h4>Please login first.</h4>

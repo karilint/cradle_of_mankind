@@ -1,5 +1,8 @@
 from django.db import models
+from users.models import User
+from django.db.models.deletion import PROTECT
 from django.db.models.fields.related import ForeignKey, OneToOneField
+from django_userforeignkey.models.fields import UserForeignKey
 from scans.models import Scan
 
 
@@ -21,6 +24,8 @@ class Retirement(models.Model):
                                  blank=True, null=True)
     status = models.CharField(max_length=255, default='to be checked')
     classifications_count = models.IntegerField(null=True)
+    checked_on = models.DateTimeField(null=True, default=None)
+    checked_by = ForeignKey(User, on_delete=PROTECT, null=True, default=None)
     created_at = models.DateTimeField(null=True)
     updated_at = models.DateTimeField(null=True)
     retired_at = models.DateTimeField(null=True)

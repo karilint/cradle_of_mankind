@@ -4,6 +4,18 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 
 
+def user_is_data_admin(user):
+    return user.is_data_admin
+
+
+def user_is_editor(user):
+    return user.is_editor
+
+
+def user_is_data_admin_or_editor(user):
+    return user.is_data_admin or user.is_editor
+
+
 def index(request):
     return render(request, 'index.html')
 

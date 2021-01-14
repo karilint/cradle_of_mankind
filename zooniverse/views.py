@@ -4,6 +4,7 @@ from json import loads
 from csv import DictReader
 from datetime import datetime
 from quality_control.models import AnnotationField
+from users.views import user_is_data_admin
 
 from django.contrib import messages
 from scans.models import Scan
@@ -14,10 +15,6 @@ from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import DataImportForm
 from .models import Retirement, Workflow, Classification, Annotation, Subject
-
-
-def user_is_data_admin(user):
-    return user.is_data_admin
 
 
 def save_uploaded_file(f):
