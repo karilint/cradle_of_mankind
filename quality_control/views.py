@@ -1,4 +1,4 @@
-from datetime import datetime
+from django.utils import timezone
 from django.contrib import messages
 from quality_control.models import AnnotationField, FinalAnnotation
 from users.views import user_is_data_admin_or_editor
@@ -54,7 +54,7 @@ def quality_control_check(request, workflow_pk, scan_pk):
             messages.success(request, "Status set as waiting")
             return redirect('quality-control-check', scan_pk=scan_pk, workflow_pk=workflow_pk)
         retirement.status = 'checked'
-        retirement.checked_on = datetime.now()
+        retirement.checked_on = timezone.now()
         retirement.checked_by = request.user
         retirement.save()
         for question in tasks.values():
