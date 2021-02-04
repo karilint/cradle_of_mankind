@@ -38,11 +38,13 @@
     {% endif %}
     {% if user.is_data_admin %}
       <a href="{% url 'scan-list' %}" class="w3-aritem w3-button w3-hover-white w3-hide-small">Scans</a>
+      <a href="{% url 'source-list' %}" class="w3-aritem w3-button w3-hover-white w3-hide-small">Source Data</a>
       <div class="w3-dropdown-hover w3-aritem">
         <button class="w3-button">Import</button>
         <div class="w3-dropdown-content w3-bar-block w3-card-4">
           <a href="{% url 'scan-import' %}" class="w3-bar-item w3-button">Scan Data</a>
           <a href="{% url 'import-data' %}" class="w3-bar-item w3-button">Zooniverse Data</a>
+          <a href="{% url 'import-source-data' %}" class="w3-bar-item w3-button">Source Data</a>
         </div>
       </div>
     {% endif %}

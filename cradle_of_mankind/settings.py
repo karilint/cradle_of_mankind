@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'scans.apps.ScansConfig',
     'zooniverse.apps.ZooniverseConfig',
     'quality_control.apps.QualityControlConfig',
+    'masterdata.apps.MasterdataConfig',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',

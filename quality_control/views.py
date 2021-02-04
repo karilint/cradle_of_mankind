@@ -4,7 +4,7 @@ from quality_control.models import AnnotationField, FinalAnnotation
 from users.views import user_is_data_admin_or_editor
 from scans.models import Scan
 from cradle_of_mankind.decorators import remember_last_query_params
-from django.template.defaulttags import find_library, register
+from django.template.defaulttags import register
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from zooniverse.models import Retirement, Subject, Workflow

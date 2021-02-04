@@ -14,6 +14,9 @@
     <h4>You don't have any given privileges yet. Please contact the maintainer of the website.</h4>
   {% else %}
     <h1>Welcome to the Cradle of Humanity &mdash; The fossil collection data at the NMK</h1>
-    <h4>Please <a href="{% url 'login' %}" >login</a> first.</h4>
+    <h4>Please <a href="{% url 'account_login' %}" >login</a> first.</h4>
   {% endif %}
+
+  <img src="{% static 'images/example.jpeg' %}" alt="Example image">
+
 {% endblock content %}
