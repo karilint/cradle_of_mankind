@@ -18,7 +18,8 @@ class ScanEditForm(forms.ModelForm):
     STATUS_CHOICES = [
         ("Waiting for upload", "Waiting for upload"),
         ("IN_PROGRESS", "In progress"),
-        ("JPG DONE", "JPG done")
+        ("JPG DONE", "JPG done"),
+        ("FINISHED", "Finished")
     ]
     TYPE_CHOICES = [
         ("Accession card", "Accession card"),

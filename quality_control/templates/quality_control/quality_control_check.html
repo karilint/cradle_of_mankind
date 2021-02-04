@@ -17,10 +17,12 @@
     <a href="{% url 'quality-control-check' w.0.id scan.id %}" class="w3-btn w3-red w3-round-large w3-margin-bottom">{{ w.0.name }}</a>
   {% endif %}
 {% endfor %}
-{% if all_checked %}
+{% if all_checked and scan.status == "FINISHED" %}
   <a href="{% url 'summary-check' scan.id %}" class="w3-btn w3-green w3-round-large w3-margin-bottom">Summary</a>
+{% elif all_checked %}
+  <a href="{% url 'summary-check' scan.id %}" class="w3-btn w3-yellow w3-round-large w3-margin-bottom">Summary</a>
 {% else %}
-  <button class="w3-btn w3-grey w3-round-large w3-margin-bottom" disabled>Summary</button>
+  <a href="{% url 'summary-check' scan.id %}" class="w3-btn w3-red w3-round-large w3-margin-bottom">Summary</a>
 {% endif %}
 {% if next_scan %}
   <a href="{% url 'quality-control-check' current_workflow.id next_scan.id %}" class="w3-btn w3-blue w3-round-large w3-margin-bottom">Next</a>

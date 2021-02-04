@@ -17,8 +17,10 @@
     <a href="{% url 'quality-control-check' w.0.id scan.id %}" class="w3-btn w3-red w3-round-large">{{ w.0.name }}</a>
   {% endif %}
 {% endfor %}
-{% if all_checked %}
+{% if all_checked and scan.status == "FINISHED" %}
   <a href="{% url 'summary-check' scan.id %}" class="w3-btn w3-green w3-round-large">Summary</a>
+{% elif all_checked %}
+  <a href="{% url 'summary-check' scan.id %}" class="w3-btn w3-yellow w3-round-large">Summary</a>
 {% else %}
   <a href="{% url 'summary-check' scan.id %}" class="w3-btn w3-red w3-round-large">Summary</a>
 {% endif %}
@@ -46,27 +48,53 @@
       {% endfor %}
     </table>
 
-    <form class="w3-margin scan-table" method="POST">
-      {% csrf_token %}
-      <label for="field-select">Update or add a new field:</label>
-      {% if user.is_data_admin %}
-        <i class="fas fa-plus" style="font-size:20px;color:green;float:right;cursor:pointer"
-          onClick="showHideAddNewFieldElement()"></i><br>
+    {% if all_checked and scan.status != "FINISHED" or user.is_data_admin %}
+      <form class="w3-margin scan-table" method="POST">
+        {% csrf_token %}
+        <label for="field-select">Update or add a new field:</label>
+        {% if user.is_data_admin %}
+          <i class="fas fa-plus" style="font-size:20px;color:green;float:right;cursor:pointer"
+            onClick="showHideAddNewFieldElement()"></i><br>
+        {% endif %}
+        <select name="field" id="field-select">
+          {% for field in fields %}
+            <option value="{{ field.name }}">{{ field.name }}</option>
+          {% endfor %}
+        </select>
+        <div style="display:flex;">
+          <input name="field-content" type="text" placeholder="Write contents for the field" style="flex:1;">
+          <button name="add-content-btn" class="w3-btn w3-dark-grey w3-round" type="submit" style="margin:8px 0px;">Update</button>
+        </div>
+        <div id="add-field" style="display: None;">
+          <input name="field-name" type="text" placeholder="Add a new field to dropdown" style="flex: 1;">
+          <button name="add-field-btn" class="w3-btn w3-dark-grey w3-round" type="submit" style="margin: 8px 0px;">Add</button>
+        </div>
+      </form>
+      {% if scan.status != "FINISHED" %}
+      <form class="w3-margin scan-table" method="POST">
+        {% csrf_token %}
+        <button name="confirm-scan" class="w3-btn w3-blue w3-round" type="submit" style="margin:8px 0px;">Confirm data as final</button>
+      </form>
       {% endif %}
-      <select name="field" id="field-select">
-        {% for field in fields %}
-          <option value="{{ field.name }}">{{ field.name }}</option>
-        {% endfor %}
-      </select>
-      <div style="display:flex;">
-        <input name="field-content" type="text" placeholder="Write contents for the field" style="flex:1;">
-        <button name="add-content-btn" class="w3-btn w3-dark-grey w3-round" type="submit" style="margin:8px 0px;">Update</button>
-      </div>
-      <div id="add-field" style="display: None;">
-        <input name="field-name" type="text" placeholder="Add a new field to dropdown" style="flex: 1;">
-        <button name="add-field-btn" class="w3-btn w3-dark-grey w3-round" type="submit" style="margin: 8px 0px;">Add</button>
-      </div>
-    </form>
+    {% else %}
+      <form class="w3-margin scan-table" method="POST">
+        {% csrf_token %}
+        <label for="field-select">Update or add a new field:</label>
+        <select name="field" id="field-select" disabled>
+          {% for field in fields %}
+            <option value="{{ field.name }}">{{ field.name }}</option>
+          {% endfor %}
+        </select>
+        <div style="display:flex;">
+          <input name="field-content" type="text" placeholder="Write contents for the field" style="flex:1;" disabled>
+          <button name="add-content-btn" class="w3-btn w3-dark-grey w3-round" type="submit" style="margin:8px 0px;" disabled>Update</button>
+        </div>
+        <div id="add-field" style="display: None;">
+          <input name="field-name" type="text" placeholder="Add a new field to dropdown" style="flex: 1;">
+          <button name="add-field-btn" class="w3-btn w3-dark-grey w3-round" type="submit" style="margin: 8px 0px;" disabled>Add</button>
+        </div>
+      </form>
+    {% endif %}
   </div
 </div>
 

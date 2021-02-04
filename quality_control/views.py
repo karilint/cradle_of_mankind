@@ -146,6 +146,9 @@ def summary_check(request, scan_pk):
                 final_annotation.question = field_name
                 final_annotation.answer = field_content
                 final_annotation.save()
+        elif 'confirm-scan' in request.POST:
+            scan.status = "FINISHED"
+            scan.save()
         return redirect('summary-check', scan_pk=scan.id)
     try:
         prev_scan = Scan.objects.get(pk=scan_pk-1)
@@ -212,9 +215,11 @@ def get_scans(request):
 
 
 def get_next_and_prev_scans(request, scan):
-    workflow_id = request.session['quality-control-list_workflow']
+    print(request.session.keys())
+    workflow_id = request.session.get('quality-control-list_workflow', 6400)
     workflow = Workflow.objects.get(pk=workflow_id)
-    status = request.session['quality-control-list_status']
+    status = request.session.get(
+        'quality-control-list_status', 'to be checked')
     retirement_list = Retirement.objects.filter(workflow=workflow)
     retirement_list = retirement_list.filter(status=status)
     prev_item = retirement_list.filter(
@@ -352,6 +357,6 @@ def get_first_value(dictionary):
     return first_value
 
 
-@register.filter
+@ register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
