@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <h2>Sources with master</h2>
+  <ul>
+    {% for source in master_sources %}
+      <li><a href="{% url 'master-list' %}?source={{ source.id }}">{{ source.name }}</a></li>
+    {% endfor%}
+  </ul>
+
+  <h2>Sources without master</h2>
+  <ul>
+    {% for source in other_sources %}
+      <li><a href="{% url 'create-master' source.id %}">{{ source.name }}</a></li>
+    {% endfor%}
+  </ul>
+
+{% endblock content %}

@@ -3,12 +3,12 @@
 
 {% block content %}
 
-  <h2>Sources</h2>
+  <h2>Master Data</h2>
 
-  <form class="w3-margin" action="{% url 'source-list' %}" method="GET">
+  <form class="w3-margin" action="{% url 'master-list' %}" method="GET">
     <label for="source-query">Select a source:</label>
     <select name="source" id="source-query">
-      {% for source in sources %}
+      {% for source in master_sources %}
         <option value="{{ source.id }}">{{source.name}}</option>
       {% endfor %}
     </select>
@@ -17,13 +17,13 @@
 
   <table class="w3-margin w3-table-all w3-hoverable center">
     <tr>
-      {% for source_field in source_fields %}
+      {% for source_field in master_fields %}
         <th class="w3-center">{{ source_field.name }}</th>
       {% endfor %}
     </tr>
     {% for entity in page_obj %}
       <tr class="w3-center">
-        {% for data_value in source_entity_data|get_item:entity %}
+        {% for data_value in master_entity_data|get_item:entity %}
           <td class="w3-center">{{ data_value }}</td>
         {% endfor %}
       </tr>
@@ -58,4 +58,5 @@
   <script type="text/javascript" src="{% static 'source_list.js' %}"></script>
 
 {% endblock content%}
+
 

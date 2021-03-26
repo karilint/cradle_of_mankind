@@ -38,7 +38,15 @@
     {% endif %}
     {% if user.is_data_admin %}
       <a href="{% url 'scan-list' %}" class="w3-aritem w3-button w3-hover-white w3-hide-small">Scans</a>
-      <a href="{% url 'source-list' %}" class="w3-aritem w3-button w3-hover-white w3-hide-small">Source Data</a>
+      <div class="w3-dropdown-hover">
+        <button class="w3-button">Master Data</button>
+        <div class="w3-dropdown-content w3-bar-block w3-card-4">
+          <a href="{% url 'source-list' %}" class="w3-bar-item w3-button">Source list</a>
+          <a href="{% url 'master-list' %}" class="w3-bar-item w3-button">Master list</a>
+          <a href="{% url 'master-fields' %}" class="w3-bar-item w3-button">Master fields</a>
+          <a href="{% url 'edit-master' %}" class="w3-bar-item w3-button">Manage master data</a>
+        </div>
+      </div>
       <div class="w3-dropdown-hover w3-aritem">
         <button class="w3-button">Import</button>
         <div class="w3-dropdown-content w3-bar-block w3-card-4">

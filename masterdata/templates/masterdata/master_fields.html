@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+  <h3>Current master fields</h3>
+  <ul>
+    {% for field in master_fields %}
+      <li>{{ field.name }}</li>
+    {% endfor%}
+  </ul>
+
+  <h3>Add a new field</h3>
+  <form class="w3-container w3-padding" method="POST">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button class="w3-btn w3-grey w3-round-large" type="submit">Add</button>
+  </form>
+
+{% endblock content %}
