@@ -42,7 +42,7 @@
         {% if values.1 != 'green' or values.2 != '' %}
           <label for="{{ label }}">{{ label }}:</label>
           {% if not checked %}
-            <i class='fas fa-plus' style='font-size:20px;color:green;float:right;cursor:pointer'
+            <i class='fa fa-plus' style='font-size:20px;color:green;float:right;cursor:pointer'
               onClick="showHideTextField('{{ label }}')"></i><br>
             <select class="w3-{{ values.1 }}" name="{{ label }}" id="{{ label }}">
               {% for answer, count in values.0.items %}
