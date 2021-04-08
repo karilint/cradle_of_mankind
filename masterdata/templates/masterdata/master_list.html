@@ -24,7 +24,9 @@
     {% for entity in page_obj %}
       <tr class="w3-center">
         {% for data_value in master_entity_data|get_item:entity %}
-          <td class="w3-center">{{ data_value }}</td>
+          <td class="w3-center">
+            <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-data-edit' data_value.id %}">{{ data_value.master_value.value }}</a>
+          </td>
         {% endfor %}
       </tr>
     {% endfor %}

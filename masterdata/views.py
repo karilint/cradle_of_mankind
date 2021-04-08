@@ -5,7 +5,6 @@ from cradle_of_mankind import settings
 from csv import DictReader
 import os
 from django.contrib import messages
-from django.db import IntegrityError
 from masterdata.forms import MasterFieldForm, SourceDataImportForm
 from users.views import user_is_data_admin
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -20,8 +19,72 @@ from masterdata.models import (
 )
 
 
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_data_edit(request, master_data_pk):
+    data = MasterData.objects.get(pk=master_data_pk)
+    if request.method == 'POST':
+        new_value = request.POST['new_value']
+        try:
+            master_value = MasterValue.objects.filter(
+                master_field=data.master_field).get(value=new_value)
+        except MasterValue.DoesNotExist:
+            old_value = data.master_value
+            master_value = MasterValue()
+            master_value.value = new_value
+            master_value.master_field = data.master_field
+            master_value.save()
+        data.master_value = master_value
+        data.save()
+        old_value.delete()
+        return redirect('master-list')
+
+    source = data.master_entity.source
+    source_data = data.source_data.first()
+    return render(request, 'masterdata/master_data_edit.html',
+                  {'data': data,
+                   'source': source,
+                   'source_data': source_data})
+
+
 @ login_required
 @ user_passes_test(user_is_data_admin)
+def master_field_delete(request, master_field_pk):
+    master_field = MasterField.objects.get(pk=master_field_pk)
+    if request.method == 'POST':
+        if master_field.name == 'Empty':
+            messages.error(request, "You cannot delete the Empty field!")
+        elif len(master_field.sources.all()) == 0:
+            master_field.delete()
+            messages.success(
+                request, "The master field was deleted succesfully!")
+        else:
+            messages.error(request,
+                           "The master field could not be deleted. There are some sources that are using it!")
+        return redirect('master-fields')
+    return render(request, 'masterdata/master_field_delete.html',
+                  {'master_field': master_field})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_field_edit(request, master_field_pk):
+    master_field = MasterField.objects.get(pk=master_field_pk)
+    if request.method == 'POST':
+        form = MasterFieldForm(request.POST, instance=master_field)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'The master field has been updated!')
+            return redirect('master-fields')
+    else:
+        form = MasterFieldForm(instance=master_field)
+    return render(request, 'masterdata/master_field_edit.html',
+                  {'form': form,
+                   'master_field': master_field})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
 def edit_master(request):
     master_sources = []
     other_sources = []
@@ -70,10 +133,20 @@ def create_master(request, source_pk):
 
     source_fields = source.sourcefield_set.all()
     master_fields = MasterField.objects.all().order_by('name')
+    examples = create_examples(source)
     return render(request, 'masterdata/create_master.html',
                   {'source': source,
                    'source_fields': source_fields,
-                   'master_fields': master_fields})
+                   'master_fields': master_fields,
+                   'examples': examples})
+
+
+def create_examples(source):
+    examples = {}
+    for field in source.sourcefield_set.all():
+        data = field.sourcedata_set.first()
+        examples[field] = data.source_value.value
+    return examples
 
 
 @ login_required
@@ -82,18 +155,12 @@ def master_fields(request):
     if request.method == 'POST':
         form = MasterFieldForm(request.POST)
         if form.is_valid():
-            try:
-                field_name = request.POST['field_name']
-                field_description = request.POST['field_description']
-                new_field = MasterField()
-                new_field.name = field_name
-                new_field.description = field_description
-                new_field.save()
-                messages.success(request, "The field was added succesfully.")
-            except IntegrityError:
-                messages.error(
-                    request, "Cannot add that field. Did you try to add a field that already exists?")
+            form.save()
+            messages.success(request, "The field was added succesfully.")
             return redirect('master-fields')
+        else:
+            messages.error(
+                request, "Cannot add that field. Did you try to add a field that already exists?")
     master_fields = MasterField.objects.all().order_by('name')
     form = MasterFieldForm()
     return render(request, 'masterdata/master_fields.html',
@@ -162,7 +229,7 @@ def get_master_entity_data(entities, fields):
         entity_data = []
         for field in fields:
             value = MasterData.objects.filter(
-                master_entity=entity, master_field=field).first().master_value.value
+                master_entity=entity, master_field=field).first()
             entity_data.append(value)
         data[entity] = entity_data
     return data

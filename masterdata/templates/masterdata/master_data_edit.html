@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+  <p>Source of the data is {{source.name}}.</p>
+  <p>The original data value in the source is "{{source_data.source_value.value}}".</p>
+
+  <h3>Edit the data value in master</h3>
+
+  <form class="w3-container w3-padding" method="POST">
+    {% csrf_token %}
+    <input type="text" name="new_value" placeholder="{{data.master_value.value}}">
+    <button class="w3-btn w3-grey w3-round-large" type="submit">Edit</button>
+    <a href="{% url 'master-list' %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
+  </form>
+
+{% endblock content %}
+

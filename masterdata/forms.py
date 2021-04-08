@@ -1,4 +1,5 @@
 from django import forms
+from .models import MasterField
 
 
 class SourceDataImportForm(forms.Form):
@@ -7,6 +8,8 @@ class SourceDataImportForm(forms.Form):
     delimiter = forms.CharField(max_length=255, label='CSV delimiter')
 
 
-class MasterFieldForm(forms.Form):
-    field_name = forms.CharField(max_length=255)
-    field_description = forms.CharField(max_length=1000, required=False)
+class MasterFieldForm(forms.ModelForm):
+
+    class Meta:
+        model = MasterField
+        fields = ['name', 'description']

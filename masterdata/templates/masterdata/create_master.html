@@ -9,8 +9,11 @@
   <form class="w3-margin w3-padding" method="POST">
     {% csrf_token %}
     {% for source_field in source_fields %}
-      <label for="{{ source_field.name }}">{{ source_field.name }}: </label>
-      <select name="{{ source_field.name }}" id="{{ source_field.name }}">
+      <div class="tooltip">
+        <label for="{{ source_field.name }}">{{ source_field.name }}: </label>
+        <span class="tooltiptext">{{examples|get_item:source_field}}</span>
+      </div>
+      <select class="master_field_selects" name="{{ source_field.name }}" id="{{ source_field.name }}">
         {% for master_field in master_fields %}
           <option value="{{ master_field.id }}">{{ master_field.name }}</option>
         {% endfor %}
@@ -19,5 +22,7 @@
     <button class="w3-btn w3-grey w3-round-large" type="submit">Create master</button>
 
   </form>
+
+  <script type="text/javascript" src="{% static 'choose_empty_option.js' %}"></script>
 
 {% endblock content %}

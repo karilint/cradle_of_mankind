@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+  <h3>{{ master_field.name }}</h3>
+
+  <form class="w3-container w3-padding" method="POST">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button class="w3-btn w3-grey w3-round-large" type="submit">Edit</button>
+    <a href="{% url 'master-fields' %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
+    <a href="{% url 'master-field-delete' master_field.id %}" class="w3-btn w3-red w3-round-large">Delete</a>
+  </form>
+
+  <script>var master_field_name = "{{ master_field.name }}";</script>
+  <script>var master_field_desc = "{{ master_field.description }}";</script>
+  <script type="text/javascript" src="{% static 'master_field.js' %}"></script>
+
+{% endblock content %}

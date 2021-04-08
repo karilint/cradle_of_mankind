@@ -7,7 +7,7 @@
   <h3>Current master fields</h3>
   <ul>
     {% for field in master_fields %}
-      <li>{{ field.name }}</li>
+      <li><a href="{% url 'master-field-edit' field.id %}">{{ field.name }}</a></li>
     {% endfor%}
   </ul>
 
