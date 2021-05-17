@@ -10,7 +10,7 @@ from users.views import user_is_data_admin
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
 from masterdata.models import (
-    MasterData, MasterEntity, MasterValue, Source,
+    EditComment, MasterData, MasterEntity, MasterValue, Source,
     SourceData,
     SourceEntity,
     SourceField,
@@ -21,30 +21,63 @@ from masterdata.models import (
 
 @login_required
 @user_passes_test(user_is_data_admin)
+def master_field_edit_display_order(request):
+    master_fields = MasterField.objects.exclude(name='Empty').order_by('name')
+    if request.method == 'POST':
+        for field in master_fields:
+            new_value = request.POST[field.name]
+            if new_value == '0':
+                field.display_order = None
+            else:
+                field.display_order = int(new_value)
+            field.save()
+        return redirect('master-fields')
+    options = list(range(1, len(master_fields) + 1))
+    current_display_orders = {}
+    for field in master_fields:
+        current_display_orders[field.name] = field.display_order
+    print(current_display_orders)
+    return render(request, 'masterdata/master_field_edit_display_order.html',
+                  {'master_fields': master_fields,
+                   'options': options,
+                   'current_display_orders': current_display_orders})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
 def master_data_edit(request, master_data_pk):
     data = MasterData.objects.get(pk=master_data_pk)
     if request.method == 'POST':
         new_value = request.POST['new_value']
+        old_value = data.master_value
         try:
             master_value = MasterValue.objects.filter(
                 master_field=data.master_field).get(value=new_value)
         except MasterValue.DoesNotExist:
-            old_value = data.master_value
             master_value = MasterValue()
             master_value.value = new_value
             master_value.master_field = data.master_field
             master_value.save()
         data.master_value = master_value
         data.save()
-        old_value.delete()
+        comment = EditComment()
+        comment.text = request.POST['comment']
+        comment.prev_value = old_value.value
+        comment.new_value = new_value
+        comment.masterdata = data
+        comment.save()
+        if not old_value.masterdata_set.all():
+            old_value.delete()
         return redirect('master-list')
 
     source = data.master_entity.source
     source_data = data.source_data.first()
+    comments = data.editcomment_set.all()
     return render(request, 'masterdata/master_data_edit.html',
                   {'data': data,
                    'source': source,
-                   'source_data': source_data})
+                   'source_data': source_data,
+                   'comments': comments})
 
 
 @ login_required
@@ -161,22 +194,23 @@ def master_fields(request):
         else:
             messages.error(
                 request, "Cannot add that field. Did you try to add a field that already exists?")
-    master_fields = MasterField.objects.all().order_by('name')
+    master_fields = MasterField.objects.exclude(name='Empty').order_by('name')
     form = MasterFieldForm()
     return render(request, 'masterdata/master_fields.html',
                   {'master_fields': master_fields,
                    'form': form})
 
 
-@ login_required
-@ user_passes_test(user_is_data_admin)
-@ remember_last_query_params('master-list', ['page', 'source'])
+@login_required
+@user_passes_test(user_is_data_admin)
+@remember_last_query_params('master-list', ['page', 'source'])
 def master_list(request):
     master_sources = get_master_sources()
     source = get_source(request)
-    master_fields = source.masterfield_set.all()
+    master_fields = source.masterfield_set.exclude(display_order=None)
     master_entities = get_master_entities(request, source)
     master_entity_data = get_master_entity_data(master_entities, master_fields)
+    print(master_entity_data)
     return render(request, 'masterdata/master_list.html',
                   {'selected_source': source,
                    'master_sources': master_sources,
@@ -185,9 +219,9 @@ def master_list(request):
                    'page_obj': master_entities})
 
 
-@ login_required
-@ user_passes_test(user_is_data_admin)
-@ remember_last_query_params('source-list', ['page', 'source'])
+@login_required
+@user_passes_test(user_is_data_admin)
+@remember_last_query_params('source-list', ['page', 'source'])
 def source_list(request):
     sources = Source.objects.all()
     source = get_source(request)

@@ -7,9 +7,11 @@
   <h3>Current master fields</h3>
   <ul>
     {% for field in master_fields %}
-      <li><a href="{% url 'master-field-edit' field.id %}">{{ field.name }}</a></li>
+      <li><a href="{% url 'master-field-edit' field.id %}">{{ field.name }} ({{field.display_order}})</a></li>
     {% endfor%}
   </ul>
+
+  <a class="w3-btn w3-grey w3-round-large" href="{% url 'master-field-edit-display-order' %}">Edit the display order</a>
 
   <h3>Add a new field</h3>
   <form class="w3-container w3-padding" method="POST">

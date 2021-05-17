@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <h2>Edit the display order</h2>
+
+  <form class="w3-margin w3-padding" method="POST">
+    {% csrf_token %}
+    {% for master_field in master_fields %}
+      <label for="{{ master_field.name }}">{{ master_field.name }}: </label>
+      <select class="master_field_selects" name="{{ master_field.name }}" id="{{ master_field.name }}">
+        <option value="0">Hidden</option>
+        {% for option in options %}
+          <option value="{{option}}">{{option}}</option>
+        {% endfor %}
+      </select>
+    {% endfor %}
+    <button class="w3-btn w3-grey w3-round-large" type="submit">Confirm</button>
+    <a href="{% url 'master-fields' %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
+  </form>
+
+{% comment %} } <script>var current_display_orders = {{ current_display_orders }};</script> {% endcomment %}
+  {% comment %} <script type="text/javascript" src="{% static 'display_order.js' %}"></script> {% endcomment %}
+
+{% endblock content %}

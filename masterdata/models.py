@@ -37,8 +37,12 @@ class MasterEntity(models.Model):
 
 class MasterField(models.Model):
     name = models.CharField(max_length=255, unique=True)
+    display_order = models.IntegerField(null=True, default=None)
     description = models.TextField(blank=True)
     sources = models.ManyToManyField(Source)
+
+    class Meta:
+        ordering = ["display_order"]
 
 
 class MasterValue(models.Model):
@@ -51,3 +55,11 @@ class MasterData(models.Model):
     master_field = models.ForeignKey(MasterField, on_delete=CASCADE)
     master_value = models.ForeignKey(MasterValue, on_delete=CASCADE)
     source_data = models.ManyToManyField(SourceData)
+
+
+class EditComment(models.Model):
+    text = models.TextField(blank=True)
+    prev_value = models.TextField(blank=True)
+    new_value = models.TextField(blank=True)
+    date = models.DateTimeField(auto_now_add=True)
+    masterdata = models.ForeignKey(MasterData, on_delete=CASCADE)
