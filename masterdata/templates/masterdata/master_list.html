@@ -8,6 +8,7 @@
   <form class="w3-margin" action="{% url 'master-list' %}" method="GET">
     <label for="source-query">Select a source:</label>
     <select name="source" id="source-query">
+      <option value="all">All</option>
       {% for source in master_sources %}
         <option value="{{ source.id }}">{{source.name}}</option>
       {% endfor %}
@@ -36,27 +37,27 @@
 
     <div class="w3-bar w3-center">
       {% if page_obj.has_previous %}
-        <a class="w3-button" href="?source={{ selected_source.id }}&page=1">First</a>
-        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.previous_page_number }}">Previous</a>
+        <a class="w3-button" href="?source={{ selection_value }}&page=1">First</a>
+        <a class="w3-button" href="?source={{ selection_value }}&page={{ page_obj.previous_page_number }}">Previous</a>
       {% endif %}
 
       {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
-          <a class="w3-button w3-dark-grey w3-margin" href="?source={{ selected_source.id }}&page={{ num }}">{{ num }}</a>
+          <a class="w3-button w3-dark-grey w3-margin" href="?source={{ selection_value }}&page={{ num }}">{{ num }}</a>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3'%}
-          <a class="w3-button" href="?source={{ selected_source.id }}&page={{ num }}">{{ num }}</a>
+          <a class="w3-button" href="?source={{ selection_value }}&page={{ num }}">{{ num }}</a>
         {% endif %}
       {% endfor%}
 
       {% if page_obj.has_next %}
-        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.next_page_number }}">Next</a>
-        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+        <a class="w3-button" href="?source={{ selection_value }}&page={{ page_obj.next_page_number }}">Next</a>
+        <a class="w3-button" href="?source={{ selection_value }}&page={{ page_obj.paginator.num_pages }}">Last</a>
       {% endif %}
     </div>
 
   {% endif %}
 
-  <script>var current_source_id = "{{ selected_source.id }}";</script>
+  <script>var current_source_id = "{{ selection_value }}";</script>
   <script type="text/javascript" src="{% static 'source_list.js' %}"></script>
 
 {% endblock content%}

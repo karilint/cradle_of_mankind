@@ -8,7 +8,6 @@
   <form class="w3-margin" action="{% url 'source-list' %}" method="GET">
     <label for="source-query">Select a source:</label>
     <select name="source" id="source-query">
-      <option value="all">all</option>
       {% for source in sources %}
         <option value="{{ source.id }}">{{ source.name }}</option>
       {% endfor %}

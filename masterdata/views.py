@@ -206,13 +206,28 @@ def master_fields(request):
 @remember_last_query_params('master-list', ['page', 'source'])
 def master_list(request):
     master_sources = get_master_sources()
-    source = get_source(request)
-    master_fields = source.masterfield_set.exclude(display_order=None)
-    master_entities = get_master_entities(request, source)
-    master_entity_data = get_master_entity_data(master_entities, master_fields)
-    print(master_entity_data)
+    if len(master_sources) < 1:
+        if len(Source.objects.all()) < 1:
+            messages.error(
+                request, "You haven't yet created any masterdata. Please upload a source and then create a master from it.")
+            redirect('import-source-data')
+        else:
+            messages.error(
+                request, "You haven't yet created any masterdata. Please pick an existing source and create masterdata from it.")
+            redirect('edit-master')
+    if request.GET.get('source') == 'all':
+        master_fields = MasterField.objects.exclude(display_order=None)
+        master_entities = get_all_master_entities(request)
+        master_entity_data = get_master_entity_data(
+            master_entities, master_fields)
+    else:
+        source = get_source(request)
+        master_fields = source.masterfield_set.exclude(display_order=None)
+        master_entities = get_master_entities(request, source)
+        master_entity_data = get_master_entity_data(
+            master_entities, master_fields)
     return render(request, 'masterdata/master_list.html',
-                  {'selected_source': source,
+                  {'selection_value': request.GET.get('source'),
                    'master_sources': master_sources,
                    'master_fields': master_fields,
                    'master_entity_data': master_entity_data,
@@ -224,6 +239,10 @@ def master_list(request):
 @remember_last_query_params('source-list', ['page', 'source'])
 def source_list(request):
     sources = Source.objects.all()
+    if len(sources) < 1:
+        messages.error(
+            request, "You haven't yet added any sources. Please upload one first.")
+        return redirect('import-source-data')
     source = get_source(request)
     source_fields = SourceField.objects.filter(source=source)
     source_entitites = get_source_entities(request, source)
@@ -272,7 +291,10 @@ def get_master_entity_data(entities, fields):
 def get_source(request):
     source_id = request.GET.get('source')
     if source_id:
-        source = Source.objects.get(pk=source_id)
+        try:
+            source = Source.objects.get(pk=source_id)
+        except Source.DoesNotExist:
+            source = Source.objects.all().first()
     else:
         source = Source.objects.all().first()
     return source
@@ -293,6 +315,19 @@ def get_source_entities(request, source):
 
 def get_master_entities(request, source):
     master_entities = MasterEntity.objects.filter(source=source)
+    page = request.GET.get('page', 1)
+    paginator = Paginator(master_entities, 15)
+    try:
+        page_entities = paginator.page(page)
+    except PageNotAnInteger:
+        page_entities = paginator.page(1)
+    except EmptyPage:
+        page_entities = paginator.page(paginator.num_pages)
+    return page_entities
+
+
+def get_all_master_entities(request):
+    master_entities = MasterEntity.objects.all()
     page = request.GET.get('page', 1)
     paginator = Paginator(master_entities, 15)
     try:
@@ -345,7 +380,6 @@ def save_data(source_name, delimiter, file):
         rows = 0
         for row in data:
             rows += 1
-        print(rows)
         f.seek(0)
         data = DictReader(f, delimiter=delimiter)
         print(f"Processing... ({rows} rows)")
