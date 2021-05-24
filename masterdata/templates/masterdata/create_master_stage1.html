@@ -14,6 +14,7 @@
           <th>Field</th>
           <th>Divide</th>
           <th>Do not divide</th>
+          <th>Example Data</th>
         </tr>
       </thead>
       <tbody>
@@ -27,6 +28,7 @@
               <td><input type="radio" id="{{source_field.name}}_divide" name="{{source_field.name}}" value="True"></td>
               <td><input type="radio" id="{{source_field.name}}_do_not_divide" name="{{source_field.name}}" value="False" checked></td>
             {% endif %}
+            <td>{{examples|get_item:source_field}}</td>
           </tr>
         {% endfor %}
       </tbody>

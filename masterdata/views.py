@@ -6,6 +6,7 @@ from csv import DictReader
 import json
 import os
 import re
+import random
 from django.contrib import messages
 from masterdata.forms import MasterFieldForm, SourceDataImportForm
 from users.views import user_is_data_admin
@@ -145,6 +146,7 @@ def edit_master(request, source_pk):
 @user_passes_test(user_is_data_admin)
 def create_master(request, source_pk, stage):
     source = Source.objects.get(pk=source_pk)
+
     if stage == 1:
         source_fields = source.sourcefield_set.all()
         if request.method == 'POST':
@@ -166,9 +168,12 @@ def create_master(request, source_pk, stage):
                 source.masterdata_rules = ''
             source.save()
             return redirect('create-master', source_pk, stage+1)
+        examples = create_examples(source)
         return render(request, 'masterdata/create_master_stage1.html',
                       {'source': source,
-                       'source_fields': source_fields})
+                       'source_fields': source_fields,
+                       'examples': examples})
+
     elif stage == 2:
         source_fields = source.sourcefield_set.filter(is_divided=True)
         if request.method == 'POST':
@@ -192,9 +197,12 @@ def create_master(request, source_pk, stage):
             else:
                 next_stage = stage-1
             return redirect('create-master', source_pk, next_stage)
+        examples = create_examples(source)
         return render(request, 'masterdata/create_master_stage2.html',
                       {'source': source,
-                       'source_fields': source_fields})
+                       'source_fields': source_fields,
+                       'examples': examples})
+
     elif stage == 3:
         source_fields = source.sourcefield_set.all()
         master_fields = MasterField.objects.all()
@@ -223,7 +231,6 @@ def create_master(request, source_pk, stage):
                     masterdata_rules[master_field_id][ordering] = {
                         'source_field': source_field.id,
                         'ending': ending}
-
             source.masterdata_rules = json.dumps(masterdata_rules)
             source.masterdata_stage = stage
             source.save()
@@ -267,12 +274,14 @@ def create_master(request, source_pk, stage):
                     selection_rules[source_field][part]['ordering'] = int(
                         ordering)
                     selection_rules[source_field][part]['ending'] = ending
-
+        examples = create_examples_with_parts(source)
         return render(request, 'masterdata/create_master_stage3.html',
                       {'source': source,
                        'source_fields': source_fields,
                        'master_fields': master_fields,
-                       'rules': selection_rules})
+                       'rules': selection_rules,
+                       'examples': examples})
+
     elif stage == 4:
         if request.method == 'POST':
             for source_entity in source.sourceentity_set.all():
@@ -306,7 +315,6 @@ def create_master(request, source_pk, stage):
                             master_value.value += master_field_rules[key]['ending']
                         source_datas.append(source_data)
                     master_value.save()
-
                     master_data.master_entity = master_entity
                     master_data.master_field = master_field
                     master_data.master_value = master_value
@@ -319,19 +327,77 @@ def create_master(request, source_pk, stage):
             source.save()
             return redirect('manage-masters')
         source_fields = source.sourcefield_set.all()
-        master_fields = MasterField.objects.all()
+        master_fields = MasterField.objects.exclude(name='Empty')
+        example_table = create_example_table(source)
         return render(request, 'masterdata/create_master_stage4.html',
                       {'source': source,
                        'source_fields': source_fields,
-                       'master_fields': master_fields})
+                       'master_fields': master_fields,
+                       'example_table': example_table})
 
 
 def create_examples(source):
     examples = {}
     for field in source.sourcefield_set.all():
-        data = field.sourcedata_set.first()
-        examples[field] = data.source_value.value
+        data = random.choice(field.sourcedata_set.all())
+        if len(data.source_value.value) > 30:
+            examples[field] = data.source_value.value[:30] + '...'
+        else:
+            examples[field] = data.source_value.value
     return examples
+
+
+def create_examples_with_parts(source):
+    examples = {}
+    for field in source.sourcefield_set.all():
+        data = random.choice(field.sourcedata_set.all())
+        if field.is_divided:
+            examples[field] = {}
+            for i in range(1, field.num_of_parts+1):
+                value = re.split(field.delimiters,
+                                 data.source_value.value)[i-1]
+                if len(value) > 30:
+                    examples[field][i] = value[:30] + '...'
+                else:
+                    examples[field][i] = value
+        else:
+            if len(data.source_value.value) > 30:
+                examples[field] = data.source_value.value[:30] + '...'
+            else:
+                examples[field] = data.source_value.value
+    return examples
+
+
+def create_example_table(source):
+    rows = []
+    source_entity_ids = list(
+        source.sourceentity_set.all().values_list('id', flat=True))
+    source_entity_ids = random.sample(source_entity_ids, 5)
+    source_entities = source.sourceentity_set.filter(pk__in=source_entity_ids)
+    for source_entity in source_entities:
+        row = {}
+        master_rules = json.loads(source.masterdata_rules)
+        for master_field in MasterField.objects.exclude(name='Empty'):
+            master_field_rules = master_rules[str(master_field.id)]
+            ordered_keys = sorted(list(master_field_rules.keys()))
+            master_value = ''
+            for key in ordered_keys:
+                source_field = SourceField.objects.get(
+                    pk=master_field_rules[key]['source_field'])
+                source_data = SourceData.objects.get(
+                    source_entity=source_entity, source_field=source_field)
+                if source_field.is_divided:
+                    part = master_field_rules[key]['part']
+                    value = re.split(source_field.delimiters,
+                                     source_data.source_value.value)[part-1]
+                    master_value += value
+                    master_value += master_field_rules[key]['ending']
+                else:
+                    master_value += source_data.source_value.value
+                    master_value += master_field_rules[key]['ending']
+            row[master_field] = master_value
+        rows.append(row)
+    return rows
 
 
 @login_required

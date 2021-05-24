@@ -6,11 +6,27 @@
 
   <h2>Create Master</h2>
 
-  <h3>Stage 4/4: Finalize</h3>
+  <h3>Stage 4/4: Sample rows with given rules. Looks good?</h3>
   <form method="POST">
     {% csrf_token %}
+    <table class="styled-table">
+      <thead>
+        {% for master_field in master_fields %}
+          <th>{{master_field.name}}</th>
+        {% endfor %}
+      </thead>
+      <tbody>
+        {% for row in example_table %}
+          <tr>
+            {% for master_field in master_fields %}
+              <td>{{row|get_item:master_field}}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     <a href="{% url 'create-master' source.id 3 %}" class="w3-btn w3-teal w3-round-large">Previous</a>
-    <button class="w3-btn w3-teal w3-round-large" type="submit">Create master</button>
+    <button class="w3-btn w3-teal w3-round-large" type="submit">Create master!</button>
   </form>
 
 {% endblock content %}

@@ -16,21 +16,26 @@
     <button class="w3-btn w3-blue w3-round-large" type="submit">Get list</button>
   </form>
 
-  <table class="w3-margin w3-table-all w3-hoverable center">
-    <tr>
-      {% for source_field in master_fields %}
-        <th class="w3-center">{{ source_field.name }}</th>
-      {% endfor %}
-    </tr>
-    {% for entity in page_obj %}
-      <tr class="w3-center">
-        {% for data_value in master_entity_data|get_item:entity %}
-          <td class="w3-center">
-            <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-data-edit' data_value.id %}">{{ data_value.master_value.value }}</a>
-          </td>
+  {% comment %} <table class="w3-margin w3-table-all w3-hoverable center"> {% endcomment %}
+  <table class="styled-table" style="margin-left: auto; margin-right: auto; min-width: 75%;">
+    <thead>
+      <tr>
+        {% for source_field in master_fields %}
+          <th class="w3-center">{{ source_field.name }}</th>
         {% endfor %}
       </tr>
-    {% endfor %}
+    </thead>
+    <tbody>
+      {% for entity in page_obj %}
+        <tr class="w3-center">
+          {% for data_value in master_entity_data|get_item:entity %}
+            <td class="w3-center">
+              <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-data-edit' data_value.id %}">{{ data_value.master_value.value }}</a>
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
   </table>
 
   {% if page_obj.has_other_pages %}

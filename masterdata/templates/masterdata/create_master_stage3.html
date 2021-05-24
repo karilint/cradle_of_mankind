@@ -16,6 +16,7 @@
           <th>Master Field</th>
           <th>Ordering</th>
           <th>Ending</th>
+          <th>Example Data</th>
         </tr>
       </thead>
       <tbody>
@@ -38,10 +39,10 @@
                 <td>
                   <select id="{{source_field.id}}_{{i}}_ordering" name="{{source_field.id}}_{{i}}_ordering">
                     {% for order in 5|range %}
-                      {% if rules|get_item:source_field|get_item:order|get_item:'ordering' == i %}
-                        <option value="{{i}}" selected>{{i}}</option>
+                      {% if rules|get_item:source_field|get_item:i|get_item:'ordering' == order %}
+                        <option value="{{order}}" selected>{{order}}</option>
                       {% else %}
-                        <option value="{{i}}">{{i}}</option>
+                        <option value="{{order}}">{{order}}</option>
                       {% endif%}
                     {% endfor %}
                   </select>
@@ -49,6 +50,7 @@
                 <td>
                   <input type="text" id="{{source_field.id}}_{{i}}_ending" name="{{source_field.id}}_{{i}}_ending" value="{{rules|get_item:source_field|get_item:i|get_item:'ending'}}">
                 </td>
+                <td>{{examples|get_item:source_field|get_item:i}}</td>
               </tr>
             {% endfor %}
           {% else %}
@@ -79,6 +81,7 @@
               <td>
                 <input type="text" id="{{source_field.id}}_ending" name="{{source_field.id}}_ending" value="{{rules|get_item:source_field|get_item:1|get_item:'ending'}}">
               </td>
+              <td>{{examples|get_item:source_field}}
             </tr>
           {% endif %}
         {% endfor %}

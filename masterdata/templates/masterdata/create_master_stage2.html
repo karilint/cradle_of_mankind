@@ -15,6 +15,7 @@
           <th>Source Field</th>
           <th>Delimiter(s)</th>
           <th>Expected number of parts</th>
+          <th>Example Data</th>
         </tr>
       </thead>
       <tbody>
@@ -33,6 +34,7 @@
                 {% endfor %}
               </select>
             </td>
+            <td>{{examples|get_item:source_field}}</td>
           </tr>
         {% endfor %}
       </tbody>
