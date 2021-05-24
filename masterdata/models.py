@@ -4,6 +4,9 @@ from django.db.models.deletion import CASCADE
 
 class Source(models.Model):
     name = models.CharField(max_length=255)
+    master_created = models.BooleanField(default=False)
+    masterdata_stage = models.IntegerField(default=0)
+    masterdata_rules = models.TextField(null=True, default=None)
 
 
 class SourceEntity(models.Model):
@@ -14,6 +17,9 @@ class SourceField(models.Model):
     name = models.CharField(max_length=255)
     display_order = models.IntegerField()
     source = models.ForeignKey(Source, on_delete=CASCADE)
+    is_divided = models.BooleanField(default=False)
+    delimiters = models.CharField(max_length=255, blank=True, default='')
+    num_of_parts = models.IntegerField(default=1)
 
     class Meta:
         ordering = ["display_order"]

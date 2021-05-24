@@ -3,18 +3,26 @@
 
 {% block content %}
 
-  <h2>Sources with master</h2>
-  <ul>
-    {% for source in master_sources %}
-      <li><a href="{% url 'master-list' %}?source={{ source.id }}">{{ source.name }}</a></li>
-    {% endfor%}
-  </ul>
+  <h2>Edit the master for {{ source.name }}</h2>
 
-  <h2>Sources without master</h2>
-  <ul>
-    {% for source in other_sources %}
-      <li><a href="{% url 'create-master' source.id %}">{{ source.name }}</a></li>
-    {% endfor%}
-  </ul>
+  <h3>Standardize the fields</h3>
+  <form class="w3-margin w3-padding" method="POST">
+    {% csrf_token %}
+    {% for source_field in source_fields %}
+      <div class="tooltip">
+        <label for="{{ source_field.name }}">{{ source_field.name }}: </label>
+        <span class="tooltiptext">{{examples|get_item:source_field}}</span>
+      </div>
+      <select class="master_field_selects" name="{{ source_field.name }}" id="{{ source_field.name }}">
+        {% for master_field in master_fields %}
+          <option value="{{ master_field.id }}">{{ master_field.name }}</option>
+        {% endfor %}
+      </select>
+    {% endfor %}
+    <button class="w3-btn w3-grey w3-round-large" type="submit">Edit master</button>
+
+  </form>
+
+  <script type="text/javascript" src="{% static 'choose_empty_option.js' %}"></script>
 
 {% endblock content %}

@@ -357,6 +357,6 @@ def get_first_value(dictionary):
     return first_value
 
 
-@ register.filter
+@register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)

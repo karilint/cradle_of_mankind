@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <h2>Manage Master Data</h2>
+  <table class="styled-table">
+    <thead>
+        <tr>
+            <th>Source</th>
+            <th>Master Data</th>
+            <th>Create</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for source in sources %}
+        <tr>
+            <td>{{source.name}}</td>
+            {% if source.master_created %}
+              <td><i class="material-icons" style="color: darkgreen">check_circle</i></td>
+              <td><a href="{% url 'create-master' source.id 1%}"><i class="material-icons"></i></a></td>
+              <td><a href="{% url 'edit-master' source.id %}"><i class="material-icons">edit</i></a></td>
+              <td><a href="#"><i class="material-icons">delete</i></a></td>
+            {% else %}
+              <td><i class="material-icons" style="color: darkred;">cancel</i></td>
+              <td><a href="{% url 'create-master' source.id 1 %}"><i class="material-icons">add_circle</i></a></td>
+              <td><a href="{% url 'edit-master' source.id %}"><i class="material-icons"></i></a></td>
+              <td><i class="material-icons"></i></td>
+            {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+</table>
+
+{% endblock content %}

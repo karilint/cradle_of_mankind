@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'style.css' %}" type="text/css">
   <script src='https://kit.fontawesome.com/a076d05399.js'></script>
   <script type="text/javascript" src="{% static 'base.js' %}"></script>
@@ -44,7 +45,7 @@
           <a href="{% url 'source-list' %}" class="w3-bar-item w3-button">Source list</a>
           <a href="{% url 'master-list' %}" class="w3-bar-item w3-button">Master list</a>
           <a href="{% url 'master-fields' %}" class="w3-bar-item w3-button">Master fields</a>
-          <a href="{% url 'edit-master' %}" class="w3-bar-item w3-button">Manage master data</a>
+          <a href="{% url 'manage-masters' %}" class="w3-bar-item w3-button">Manage master data</a>
         </div>
       </div>
       <div class="w3-dropdown-hover w3-aritem">
@@ -99,6 +100,8 @@
     </div>
   </div>
 </main>
+
+{% block javascript %}{% endblock %}
 
 </body>
 

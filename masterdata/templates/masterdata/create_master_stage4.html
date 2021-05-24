@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+{% load my_filters %}
+
+{% block content %}
+
+  <h2>Create Master</h2>
+
+  <h3>Stage 4/4: Finalize</h3>
+  <form method="POST">
+    {% csrf_token %}
+    <a href="{% url 'create-master' source.id 3 %}" class="w3-btn w3-teal w3-round-large">Previous</a>
+    <button class="w3-btn w3-teal w3-round-large" type="submit">Create master</button>
+  </form>
+
+{% endblock content %}
+
+{% block javascript %}{% endblock %}

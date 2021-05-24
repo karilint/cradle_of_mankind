@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <h2>Create Master</h2>
+
+  <h4>Stage 1/4: Choose which fields need to be divided into parts.</h3>
+  <form method="POST">
+    {% csrf_token %}
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Divide</th>
+          <th>Do not divide</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source_field in source_fields %}
+          <tr>
+            <td>{{source_field.name}}</td>
+            {% if source_field.is_divided %}
+              <td><input type="radio" id="{{source_field.name}}_divide" name="{{source_field.name}}" value="True" checked></td>
+              <td><input type="radio" id="{{source_field.name}}_do_not_divide" name="{{source_field.name}}" value="False"></td>
+            {% else %}
+              <td><input type="radio" id="{{source_field.name}}_divide" name="{{source_field.name}}" value="True"></td>
+              <td><input type="radio" id="{{source_field.name}}_do_not_divide" name="{{source_field.name}}" value="False" checked></td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a href="{% url 'manage-masters' %}" class="w3-btn w3-teal w3-round-large">Back</a>
+    <button class="w3-btn w3-teal w3-round-large" type="submit">Next</button>
+
+  </form>
+
+{% endblock content %}
+
+
+{% block javascript %}{% endblock %}

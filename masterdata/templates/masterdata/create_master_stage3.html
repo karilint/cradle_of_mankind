@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static %}
+{% load my_filters %}
+
+{% block content %}
+
+  <h2>Create Master</h2>
+
+  <h4>Stage 3/4: Assign rules for master field mapping.</h3>
+  <form method="POST">
+    {% csrf_token %}
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Source Field</th>
+          <th>Master Field</th>
+          <th>Ordering</th>
+          <th>Ending</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source_field in source_fields %}
+          {% if source_field.is_divided %}
+            {% for i in source_field.num_of_parts|range %}
+              <tr>
+                <td>{{source_field.name}}_part{{i}}</td>
+                <td>
+                  <select id="{{source_field.id}}_{{i}}_master" name="{{source_field.id}}_{{i}}_master">
+                    {% for master_field in master_fields %}
+                      {% if rules|get_item:source_field|get_item:i|get_item:'master_field' == master_field %}
+                        <option value="{{master_field.id}}" selected>{{master_field.name}}</option>
+                      {% else %}
+                        <option value="{{master_field.id}}">{{master_field.name}}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>
+                  <select id="{{source_field.id}}_{{i}}_ordering" name="{{source_field.id}}_{{i}}_ordering">
+                    {% for order in 5|range %}
+                      {% if rules|get_item:source_field|get_item:order|get_item:'ordering' == i %}
+                        <option value="{{i}}" selected>{{i}}</option>
+                      {% else %}
+                        <option value="{{i}}">{{i}}</option>
+                      {% endif%}
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>
+                  <input type="text" id="{{source_field.id}}_{{i}}_ending" name="{{source_field.id}}_{{i}}_ending" value="{{rules|get_item:source_field|get_item:i|get_item:'ending'}}">
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td>{{source_field.name}}</td>
+              <td>
+                <select id="{{source_field.id}}_master" name="{{source_field.id}}_master">
+                  {% for master_field in master_fields %}
+                    {% if rules|get_item:source_field|get_item:1|get_item:'master_field' == master_field %}
+                      <option value="{{master_field.id}}" selected>{{master_field.name}}</option>
+                    {% else %}
+                      <option value="{{master_field.id}}">{{master_field.name}}</option>
+                    {% endif %}
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <select id="{{source_field.id}}_ordering" name="{{source_field.id}}_ordering">
+                  {% for i in 5|range %}
+                    {% if rules|get_item:source_field|get_item:1|get_item:'ordering' == i %}
+                      <option value="{{i}}" selected>{{i}}</option>
+                    {% else %}
+                      <option value="{{i}}">{{i}}</option>
+                    {% endif%}
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <input type="text" id="{{source_field.id}}_ending" name="{{source_field.id}}_ending" value="{{rules|get_item:source_field|get_item:1|get_item:'ending'}}">
+              </td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+    <button name="previous" class="w3-btn w3-teal w3-round-large" type="submit">Previous</button>
+    <button name="next" class="w3-btn w3-teal w3-round-large" type="submit">Next</button>
+
+  </form>
+
+{% endblock content %}
+
+{% block javascript %}{% endblock %}
