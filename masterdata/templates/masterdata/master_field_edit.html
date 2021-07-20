@@ -14,8 +14,4 @@
     <a href="{% url 'master-field-delete' master_field.id %}" class="w3-btn w3-red w3-round-large">Delete</a>
   </form>
 
-  <script>var master_field_name = "{{ master_field.name }}";</script>
-  <script>var master_field_desc = "{{ master_field.description }}";</script>
-  <script type="text/javascript" src="{% static 'master_field.js' %}"></script>
-
 {% endblock content %}

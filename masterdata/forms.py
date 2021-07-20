@@ -1,15 +1,25 @@
 from django import forms
-from .models import MasterField
+from .models import MasterField, Source
 
 
-class SourceDataImportForm(forms.Form):
-    source_name = forms.CharField(max_length=255)
-    file = forms.FileField(label="Upload a CSV file containing source data")
-    delimiter = forms.CharField(max_length=255, label='CSV delimiter')
+class SourceDataImportForm(forms.ModelForm):
+    # source_name = forms.CharField(max_length=255)
+    # source_file = forms.FileField(
+    #     label="Upload a CSV file containing source data")
+    # delimiter = forms.CharField(max_length=255, label='CSV delimiter')
+
+    class Meta:
+        model = Source
+        fields = ['name', 'source_file', 'delimiter']
+        labels = {
+            'name': "Source name",
+            'source_file': "Upload a CSV file containing source data",
+            'delimiter': "CSV delimiter",
+        }
 
 
 class MasterFieldForm(forms.ModelForm):
 
     class Meta:
         model = MasterField
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'primary_key']

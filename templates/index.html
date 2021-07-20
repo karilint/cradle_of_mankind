@@ -1,7 +1,7 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-{% load static %}
 
   {% if user.is_data_admin %}
     <h1>Hello {{ user.first_name }}!</h1>

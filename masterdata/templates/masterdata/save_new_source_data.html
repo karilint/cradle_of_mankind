@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+    <h2>What are the primary keys in the source data?</h2>
+    <form method="POST">
+      {% csrf_token %}
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Source Field</th>
+            <th>Yes</th>
+            <th>No</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for source_field in source_fields %}
+            <tr>
+              <td>{{source_field.name}}</td>
+              <td><input type="radio" id="{{source_field.name}}_true" name="{{source_field.name}}" value="True"></td>
+              <td><input type="radio" id="{{source_field.name}}_false" name="{{source_field.name}}" value="False" checked></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <button class="w3-btn w3-blue w3-round-large" type="submit">Save data!</button>
+    </form>
+
+{% endblock content%}
+
+

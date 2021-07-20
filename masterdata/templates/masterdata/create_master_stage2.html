@@ -4,41 +4,46 @@
 
 {% block content %}
 
-  <h2>Create Master</h2>
+  <h2>{{title}}</h2>
 
-  <h4>Stage 2/4: Give delimiters that will be used to divide the source fields you want to be in masterdata.</h3>
+  <h4>{{instructions}}</h3>
   <form method="POST">
     {% csrf_token %}
-    <table class="styled-table">
-      <thead>
-        <tr>
-          <th>Source Field</th>
-          <th>Delimiter(s)</th>
-          <th>Expected number of parts</th>
-          <th>Example Data</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for source_field in source_fields %}
+    {% if source_fields %}
+      <table class="styled-table">
+        <thead>
           <tr>
-            <td>{{source_field.name}}</td>
-            <td><input type="text" id="{{source_field.name}}_delimiters" name="{{source_field.name}}_delimiters" value="{{source_field.delimiters}}"></td>
-            <td>
-              <select id="{{source_field.name}}_num_of_parts" name="{{source_field.name}}_num_of_parts">
-                {% for i in 5|range %}
-                  {% if source_field.num_of_parts == i %}
-                    <option value="{{i}}" selected>{{i}}</option>
-                  {% else %}
-                    <option value="{{i}}">{{i}}</option>
-                  {% endif %}
-                {% endfor %}
-              </select>
-            </td>
-            <td>{{examples|get_item:source_field}}</td>
+            <th>Source Field</th>
+            <th>Delimiter(s)</th>
+            <th>Expected number of parts</th>
+            <th>Example Data</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for source_field in source_fields %}
+            <tr>
+              <td>{{source_field.name}}</td>
+              <td><input type="text" id="{{source_field.name}}_delimiters" name="{{source_field.name}}_delimiters" value="{{source_field.delimiters}}"></td>
+              <td>
+                <select id="{{source_field.name}}_num_of_parts" name="{{source_field.name}}_num_of_parts">
+                  {% for i in 5|range %}
+                    {% if source_field.num_of_parts == i %}
+                      <option value="{{i}}" selected>{{i}}</option>
+                    {% else %}
+                      <option value="{{i}}">{{i}}</option>
+                    {% endif %}
+                  {% endfor %}
+                </select>
+              </td>
+              <td>{{examples|get_item:source_field}}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <br>
+      <h3>You did not decide to divide any fields.</h3>
+    {% endif %}
     <button name="previous" class="w3-btn w3-teal w3-round-large" type="submit">Previous</button>
     <button name="next" class="w3-btn w3-teal w3-round-large" type="submit">Next</button>
 

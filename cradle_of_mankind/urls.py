@@ -28,6 +28,7 @@ urlpatterns = [
     path('zooniverse/', include('zooniverse.urls')),
     path('quality_control/', include('quality_control.urls')),
     path('masterdata/', include('masterdata.urls')),
+    path('contact/', include('contact.urls')),
     path('', index, name='index'),
 ]
 

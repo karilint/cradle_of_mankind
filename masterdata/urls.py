@@ -1,23 +1,35 @@
 from django.urls import path
 from .views import (
+    import_source_data,
     manage_masters,
-    master_data_edit,
+    master_entity_split,
+    master_entity_view,
     master_field_delete,
     master_field_edit,
-    import_data,
+    import_new_source,
     master_field_edit_display_order,
     master_fields, master_list,
+    save_new_source_data,
     source_list,
     edit_master,
-    create_master
+    create_master,
+    delete_master,
+    update_existing_source
 )
 
 urlpatterns = [
-    path('import/', import_data, name='import-source-data'),
+    path('import/', import_source_data, name='import-source-data'),
+    path('import/update-existing-source',
+         update_existing_source, name='update-existing-source'),
+    path('import/new', import_new_source, name='import-new-source'),
+    path('import/save-import/<int:source_pk>/',
+         save_new_source_data, name='save-new-source-data'),
     path('manage/', manage_masters, name='manage-masters'),
     path('create/<int:source_pk>/stage-<int:stage>',
          create_master, name='create-master'),
-    path('edit/<int:source_pk>', edit_master, name='edit-master'),
+    path('delete/<int:source_pk>', delete_master, name='delete-master'),
+    path('edit/<int:source_pk>/stage-<int:stage>',
+         edit_master, name='edit-master'),
     path('master-fields/', master_fields, name='master-fields'),
     path('master-fields/edit/<int:master_field_pk>',
          master_field_edit, name='master-field-edit'),
@@ -27,6 +39,8 @@ urlpatterns = [
          master_field_edit_display_order, name='master-field-edit-display-order'),
     path('source-list/', source_list, name='source-list'),
     path('master-list/', master_list, name='master-list'),
-    path('master-list/edit/<int:master_data_pk>',
-         master_data_edit, name='master-data-edit')
+    path('master-list/view/<int:master_entity_pk>',
+         master_entity_view, name='master-entity-view'),
+    path('master-list/view/<int:master_entity_pk>/split/<int:source_entity_pk>',
+         master_entity_split, name='master-entity-split')
 ]

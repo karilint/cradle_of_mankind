@@ -3,9 +3,9 @@
 
 {% block content %}
 
-  <h2>Create Master</h2>
+  <h2>{{title}}</h2>
 
-  <h4>Stage 1/4: Choose which fields need to be divided into parts.</h3>
+  <h4>{{instructions}}</h3>
   <form method="POST">
     {% csrf_token %}
     <table class="styled-table">

@@ -12,7 +12,11 @@
       <select class="master_field_selects" name="{{ master_field.name }}" id="{{ master_field.name }}">
         <option value="0">Hidden</option>
         {% for option in options %}
-          <option value="{{option}}">{{option}}</option>
+          {% if master_field.display_order == option %}
+            <option value="{{option}}" selected>{{option}}</option>
+          {% else %}
+            <option value="{{option}}">{{option}}</option>
+          {% endif %}
         {% endfor %}
       </select>
     {% endfor %}
@@ -20,7 +24,5 @@
     <a href="{% url 'master-fields' %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
   </form>
 
-{% comment %} } <script>var current_display_orders = {{ current_display_orders }};</script> {% endcomment %}
-  {% comment %} <script type="text/javascript" src="{% static 'display_order.js' %}"></script> {% endcomment %}
 
 {% endblock content %}

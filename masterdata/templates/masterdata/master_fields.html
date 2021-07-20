@@ -4,14 +4,47 @@
 
 {% block content %}
 
-  <h3>Current master fields</h3>
-  <ul>
-    {% for field in master_fields %}
-      <li><a href="{% url 'master-field-edit' field.id %}">{{ field.name }} ({{field.display_order}})</a></li>
-    {% endfor%}
-  </ul>
 
-  <a class="w3-btn w3-grey w3-round-large" href="{% url 'master-field-edit-display-order' %}">Edit the display order</a>
+  {% if master_fields %}
+    <h3>Master Fields</h3>
+
+    <table class="styled-table">
+      <thead>
+          <tr>
+              <th>Field</th>
+              <th>Display Order</th>
+              <th>Primary Key</th>
+              <th>Edit</th>
+          </tr>
+      </thead>
+      <tbody>
+        {% for field in master_fields %}
+          <tr>
+              <td>{{field.name}}</td>
+              {% if field.display_order %}
+                <td>{{field.display_order}}</td>
+              {% else %}
+                <td>Hidden</td>
+              {% endif %}
+              {% if field.primary_key %}
+                <td>Yes</td>
+              {% else %}
+                <td>No</td>
+              {% endif %}
+              <td>
+                <a href="{% url 'master-field-edit' field.id %}"><i class="material-icons">edit</i></a>
+              </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <a class="w3-btn w3-teal w3-round-large" href="{% url 'master-field-edit-display-order' %}">Edit the display order</a>
+  {% else %}
+    <h4>There are no master fields.</h4>
+  {% endif %}
+
+
 
   <h3>Add a new field</h3>
   <form class="w3-container w3-padding" method="POST">

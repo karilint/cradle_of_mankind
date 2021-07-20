@@ -1,4 +1,9 @@
 {% load static %}
+{% comment %} {% if not user.is_authenticated %} {% endcomment %}
+{% load crispy_forms_tags %}
+{% load account socialaccount %}
+{% comment %} {% endif %} {% endcomment %}
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -57,11 +62,13 @@
         </div>
       </div>
     {% endif %}
+    
     {% if user.is_authenticated %}
-      <a href="{% url 'account_logout' %}" class="w3-bar-item w3-button w3-right w3-hover-white w3-hide-small">Logout</a>
+      <button id="logout-btn" class="w3-button w3-bar-item w3-right w3-hover-white">Logout</button>
     {% else %}
-      <a href="{% url 'account_login' %}" class="w3-bar-item w3-button w3-right w3-hover-white w3-hide-small">Login | Sign Up</a>
+      <button id="login-btn" class="w3-button w3-bar-item w3-right w3-hover-white">Login | Sign up</button>
     {% endif %}
+    <button id="contact-form-btn" class="w3-button w3-bar-item w3-right w3-hover-white">Contact</button>
   </div>
 </div>
 
@@ -91,8 +98,9 @@
     <div class="w3-container">
       {% if messages %}
         {% for message in messages %}
-          <div class="w3-panel w3-dark-grey">
-            <p>{{ message }}</p>
+          <div class="alert w3-round {{message.tags}}">
+            <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+            <strong>{{message.tags|title}}! </strong>{{message}}
           </div>
         {% endfor %}
       {% endif %}
@@ -100,6 +108,142 @@
     </div>
   </div>
 </main>
+
+<!-- https://www.w3schools.com/howto/howto_css_modals.asp -->
+
+<!-- Contact Form Modal -->
+<div id="contact-form" class="modal">
+
+  <!-- Contact Form Content -->
+  <div class="modal-content">
+    <div class="modal-header w3-center">
+      <span id="contact-form-close" class="close">&times;</span>
+      <h2>Contact Form</h2>
+    </div>
+    <div class="modal-body container">
+      <form action="{% url 'contact_form' %}" method="POST">
+        {% csrf_token %}
+
+        <label for="full_url">Current URL</lable>
+        <input type="text" id="full_url" name="full_url" value="{{request.get_host}}{{request.path}}" readonly>
+
+        <hr>
+
+        <label for="name">Name</label>
+        {% if user.is_authenticated %}
+          <input type="text" id="name" name="name" placeholder="Your name.." value="{{user.get_full_name}}" required>
+        {% else %}
+          <input type="text" id="name" name="name" placeholder="Your name.." required>
+        {% endif %}
+
+        <label for="email">Email</label>
+        {% if user.is_authenticated %}
+          <input type="text" id="email" name="email" placeholder="Your email.." value="{{user.email}}" required>
+        {% else %}
+          <input type="text" id="email" name="email" placeholder="Your email.." required>
+        {% endif %}
+
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" name="subject" placeholder="Subject" required>
+
+        <label for="message">Message</label>
+        <textarea id="message" name="message" placeholder="Write something..." style="height:200px" required></textarea>
+
+        <input type="hidden" name="url" value="{{request.path}}">
+
+        <input type="submit" value="Submit">
+
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- The Logout Modal -->
+<div id="logout-modal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <div class="modal-header w3-center">
+      <span id="logout-close" class="close">&times;</span>
+      <h2>Logout</h2>
+    </div>
+    <div class="modal-body">
+
+      <p class="w3-center">Are you sure you want to Logout?</p>
+
+      <form method="post" action="{% url 'account_logout' %}">
+        {% csrf_token %}
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+        {% endif %}
+        <input type="submit" value="Logout">
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- The Logout Modal -->
+<div id="login-modal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <div class="modal-header w3-center">
+      <span id="login-close" class="close">&times;</span>
+      <h2>Login</h2>
+    </div>
+    <div class="modal-body">
+
+      {% get_providers as socialaccount_providers %}
+
+      <form class="login" method="POST" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        <div id="div_id login" class="control-group">
+          <label for="id_login_modal" class="control-label requiredField">
+            Username<span class="asteriskField">*</span>
+          </label>
+          <div class="controls">
+            <input type="text" name="login" placeholder="Username" autocomplete="username" maxlength="150" class="textinput textInput" required id="id_login_modal">
+          </div>
+        </div>
+        <div id="div_id_password" class="control-group">
+          <label for="id_password_modal" class="control-label requiredField">
+            Password<span class="asteriskField">*</span>
+          </label>
+          <div class="controls">
+            <input type="password" name="password" placeholder="Password" autocomplete="current-password" class="textinput textInput" required id="id_password_modal">
+          </div>
+        </div>
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+        <input type="submit" value="Login" class="primaryAction">
+        <a class="button secondaryAction" href="{% url 'account_reset_password' %}">Forgot Password?</a>
+      </form>
+
+      {% if socialaccount_providers %}
+        <hr>
+
+        <div class="socialaccount_ballot">
+          <ul class="socialaccount_providers w3-center">
+            {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+          </ul>
+        </div>
+      {% include "socialaccount/snippets/login_extra.html" %}
+
+      {% else %}
+        <p>If you have not created an account yet, then please
+        <a href="{{ signup_url }}">sign up</a> first.</p>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+<script type="text/javascript" src="{% static 'modals.js' %}"></script>
 
 {% block javascript %}{% endblock %}
 

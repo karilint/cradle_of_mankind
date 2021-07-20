@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+    <h2>Update Existing Source</h2>
+    <form class="w3-container w3-padding" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label for="source">Source*</label>
+      <select name="source" id="source" required>
+        {% for source in sources %}
+          <option value="{{source.id}}">{{source.name}}</option>
+        {% endfor %}
+      </select>
+      <label for="file">Upload a CSV file containing source data*</label>
+      <input type="file" id="file" name="file" required>
+      <label for="delimiter">CSV delimiter*</label>
+      <input type="text" id="delimiter" name="delimiter" required>
+      <button class="w3-btn w3-grey w3-round-large" type="submit">Update!</button>
+    </form>
+
+{% endblock content%}
+

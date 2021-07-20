@@ -4,9 +4,9 @@
 
 {% block content %}
 
-  <h2>Create Master</h2>
+  <h2>{{title}}</h2>
 
-  <h3>Stage 4/4: Sample rows with given rules. Looks good?</h3>
+  <h3>{{instructions}}</h3>
   <form method="POST">
     {% csrf_token %}
     <table class="styled-table">

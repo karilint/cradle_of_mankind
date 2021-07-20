@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <h2>Are you sure? This action cannot be reversed. </h2>
+
+  <form method="POST">
+    {% csrf_token %}
+    <button class="w3-btn w3-red w3-round-large" type="submit">Yes, delete!</button>
+    <a href="{% url 'manage-masters' %}" class="w3-btn w3-teal w3-round-large">Cancel</a>
+  </form>
+
+{% endblock content %}
+
+
+{% block javascript %}{% endblock %}

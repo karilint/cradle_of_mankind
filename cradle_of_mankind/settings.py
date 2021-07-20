@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'zooniverse.apps.ZooniverseConfig',
     'quality_control.apps.QualityControlConfig',
     'masterdata.apps.MasterdataConfig',
+    'contact.apps.ContactConfig',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -121,6 +122,7 @@ DATABASES = {
         'PASSWORD': config.get('DB_PASS'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
         },
     }
 }

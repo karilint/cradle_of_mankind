@@ -9,14 +9,32 @@
     <label for="workflow-query">Workflow:</label>
     <select name="workflow" id="workflow-query">
       {% for workflow in workflows %}
-        <option value="{{ workflow.id}}">{{workflow.name}}</option>
+        {% if current_workflow == workflow %}
+          <option value="{{ workflow.id}}" selected>{{workflow.name}}</option>
+        {% else %}
+          <option value="{{ workflow.id}}">{{workflow.name}}</option>
+        {% endif %}
       {% endfor %}
     </select>
     <label for="status-query">Status:</label>
     <select name="status" id="status-query">
-      <option value="to be checked">to be checked</option>
-      <option value="waiting">waiting</option>
-      <option value="checked">checked</option>
+      {% if status == "to be checked" %}
+        <option value="to be checked" selected>to be checked</option>
+      {% else %}
+        <option value="to be checked">to be checked</option>
+      {% endif %}
+
+      {% if status == "waiting" %}
+        <option value="waiting" selected>waiting</option>
+      {% else %}
+        <option value="waiting">waiting</option>
+      {% endif %}
+
+      {% if status == "checked" %}
+        <option value="checked" selected>checked</option>
+      {% else %}
+        <option value="checked">checked</option>
+      {% endif %}
     </select>
     <button class="w3-btn w3-blue w3-round-large" type="submit">Search</button>
   </form>
@@ -68,9 +86,5 @@
     </div>
 
   {% endif %}
-
-  <script>var status = "{{ status }}";</script>
-  <script>var currentWorkflowId = "{{ current_workflow.id }}";</script>
-  <script type="text/javascript" src="{% static 'quality_control_list.js' %}"></script>
 
 {% endblock content%}

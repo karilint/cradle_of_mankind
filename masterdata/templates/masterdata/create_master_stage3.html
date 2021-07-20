@@ -4,9 +4,9 @@
 
 {% block content %}
 
-  <h2>Create Master</h2>
+  <h2>{{title}}</h2>
 
-  <h4>Stage 3/4: Assign rules for master field mapping.</h3>
+  <h4>{{instructions}}</h3>
   <form method="POST">
     {% csrf_token %}
     <table class="styled-table">
@@ -27,6 +27,7 @@
                 <td>{{source_field.name}}_part{{i}}</td>
                 <td>
                   <select id="{{source_field.id}}_{{i}}_master" name="{{source_field.id}}_{{i}}_master">
+                    <option value="-1">Empty</option>
                     {% for master_field in master_fields %}
                       {% if rules|get_item:source_field|get_item:i|get_item:'master_field' == master_field %}
                         <option value="{{master_field.id}}" selected>{{master_field.name}}</option>
@@ -58,6 +59,7 @@
               <td>{{source_field.name}}</td>
               <td>
                 <select id="{{source_field.id}}_master" name="{{source_field.id}}_master">
+                  <option value="-1">Empty</option>
                   {% for master_field in master_fields %}
                     {% if rules|get_item:source_field|get_item:1|get_item:'master_field' == master_field %}
                       <option value="{{master_field.id}}" selected>{{master_field.name}}</option>

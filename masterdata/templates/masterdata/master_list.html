@@ -3,9 +3,13 @@
 
 {% block content %}
 
-  <h2>Master Data</h2>
+  <div >
+    <h2 style="display: inline-block">Master List</h2>
+    <button style="float: right" onclick="hide_show()"class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
+  </div>
 
-  <form class="w3-margin" action="{% url 'master-list' %}" method="GET">
+  <form id="hide_show" class="w3-margin" action="{% url 'master-list' %}" method="GET" style="display: none;">
+    <!--
     <label for="source-query">Select a source:</label>
     <select name="source" id="source-query">
       <option value="all">All</option>
@@ -13,11 +17,61 @@
         <option value="{{ source.id }}">{{source.name}}</option>
       {% endfor %}
     </select>
-    <button class="w3-btn w3-blue w3-round-large" type="submit">Get list</button>
+    -->
+    <div class="w3-row">
+      <div class="w3-col l8 m6 s4" style="padding-right: 12px;">
+        <label for="search">Search for data values</label>
+        <input type="text" id="search" name="search" value="{{search}}">
+      </div>
+      <div class="w3-col l2 m3 s4" style="padding: 0px 12px;">
+        <label for="matching">Matching</label>
+        <select id="matching" name="matching">
+          {% if matching == 'exact' %}
+            <option value="exact" selected>Exact</option>
+          {% else %}
+            <option value="exact">Exact</option>
+          {% endif %}
+
+          {% if matching == 'contains' %}
+            <option value="contains" selected>Contains</option>
+          {% else %}
+            <option value="contains">Contains</option>
+          {% endif %}
+
+          {% if matching == 'startswith' %}
+            <option value="startswith" selected>Starts with</option>
+          {% else %}
+            <option value="startswith">Starts with</option>
+          {% endif %}
+
+          {% if matching == 'endswith' %}
+            <option value="endswith" selected>Ends with</option>
+          {% else %}
+            <option value="endswith">Ends with</option>
+          {% endif %}
+        </select>
+      </div>
+      <div class="w3-col l2 m3 s4" style="padding-left: 12px;">
+        <label for"case-sensitive">Case-sensitive</label>
+        <select id="case-sensitive" name="case-sensitive">
+          {% if case_sensitive == 'yes' %}
+            <option value="yes" selected>Yes</option>
+          {% else %}
+            <option value="yes">Yes</option>
+          {% endif %}
+
+          {% if case_sensitive == 'no' %}
+            <option value="no" selected>No</option>
+          {% else %}
+            <option value="no">No</option>
+          {% endif %}
+        </select>
+      </div>
+    </div>
+    <button class="w3-btn w3-blue w3-round-large" type="submit">Filter</button>
   </form>
 
-  {% comment %} <table class="w3-margin w3-table-all w3-hoverable center"> {% endcomment %}
-  <table class="styled-table" style="margin-left: auto; margin-right: auto; min-width: 75%;">
+  <table class="styled-table" style="width: 100%">
     <thead>
       <tr>
         {% for source_field in master_fields %}
@@ -27,10 +81,24 @@
     </thead>
     <tbody>
       {% for entity in page_obj %}
-        <tr class="w3-center">
+        <tr class="w3-center highlight">
           {% for data_value in master_entity_data|get_item:entity %}
             <td class="w3-center">
-              <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-data-edit' data_value.id %}">{{ data_value.master_value.value }}</a>
+            {% if data_value.mastervalue_set.all|length > 1 %}
+              <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">
+                {% for master_value in data_value.mastervalue_set.all %}
+                  {% if forloop.last %}
+                    <span>{{master_value.value}}</span>
+                  {% else %}
+                    <span>{{master_value.value}} | </span>
+                  {% endif %}
+                {% endfor %}
+              </a>
+            {% else %}
+              {% if data_value %}
+                <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">{{ data_value.mastervalue_set.first.value }}</a>
+              {% endif %}
+            {% endif %}
             </td>
           {% endfor %}
         </tr>
@@ -62,9 +130,17 @@
 
   {% endif %}
 
-  <script>var current_source_id = "{{ selection_value }}";</script>
-  <script type="text/javascript" src="{% static 'source_list.js' %}"></script>
-
 {% endblock content%}
 
-
+{% block javascript %}
+  <script>
+    function hide_show() {
+      var x = document.getElementById("hide_show");
+      if (x.style.display === "none") {
+        x.style.display = "block";
+      } else {
+        x.style.display = "none";
+      }
+    }
+  </script>
+{% endblock javascript %}

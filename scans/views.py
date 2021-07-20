@@ -99,7 +99,7 @@ def import_scans(request):
         form = ScanDataImportForm(request.POST, request.FILES)
         if form.is_valid():
             save_json_to_database(request.FILES['file'], request.user)
-            messages.success(request, "Upload succesful!")
+            messages.success(request, "Upload was finished!")
             return redirect('index')
     else:
         form = ScanDataImportForm()

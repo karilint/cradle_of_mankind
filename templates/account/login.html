@@ -4,6 +4,43 @@
 {% load i18n %}
 {% load account socialaccount %}
 
+{% block content %}
+  <div class="modal-content">
+    <div class="modal-header w3-center">
+      <h2>Login</h2>
+    </div>
+    <div class="modal-body">
+
+      {% get_providers as socialaccount_providers %}
+
+      <form class="login" method="POST" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        {{ form|crispy }}
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+        <input type="submit" value="Login" class="primaryAction">
+        <a class="button secondaryAction" href="{% url 'account_reset_password' %}">Forgot Password?</a>
+      </form>
+
+      {% if socialaccount_providers %}
+        <hr>
+
+        <div class="socialaccount_ballot">
+          <ul class="socialaccount_providers w3-center">
+            {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+          </ul>
+        </div>
+      {% include "socialaccount/snippets/login_extra.html" %}
+
+      {% else %}
+        <p>If you have not created an account yet, then please
+        <a href="{{ signup_url }}">sign up</a> first.</p>
+      {% endif %}
+
+    </div>
+  </div>
+{% comment %} 
 {% block head_title %}{% trans "Login" %}{% endblock %}
 
 {% block content %}
@@ -42,6 +79,6 @@ of your existing third party accounts. {% endblocktrans %}</p>
   {% endif %}
   <a class="button secondaryAction" href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
   <button class="primaryAction" type="submit">{% trans "Login" %}</button>
-</form>
+</form> {% endcomment %}
 
-{% endblock %}
+{% endblock content %}

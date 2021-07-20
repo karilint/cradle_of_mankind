@@ -139,6 +139,154 @@ input[type=submit]:hover {
 }
 
 .styled-table tbody tr i:hover {
-    /* font-weight: bold; */
+    font-weight: bold;
     color: #009879;
+}
+
+.styled-table tbody tr.highlight:hover {
+    color: #009879;
+    text-shadow: 1px 0px 0px #009879;
+}
+
+.styled-table tbody tr .highlight:hover {
+    color: #009879;
+    text-shadow: 1px 0px 0px #009879;
+}
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+  position: relative;
+  background-color: #fefefe;
+  margin: auto;
+  padding: 0;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 700px;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+  -webkit-animation-name: animatetop;
+  -webkit-animation-duration: 0.4s;
+  animation-name: animatetop;
+  animation-duration: 0.4s
+}
+
+/* Add Animation */
+@-webkit-keyframes animatetop {
+  from {top:-300px; opacity:0} 
+  to {top:0; opacity:1}
+}
+
+@keyframes animatetop {
+  from {top:-300px; opacity:0}
+  to {top:0; opacity:1}
+}
+
+/* The Close Button */
+.close {
+  color: white;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: rgb(126, 126, 126);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-header {
+  padding: 2px 16px;
+  background-color: black;
+  color: white;
+}
+
+.modal-body {padding: 16px 16px 8px 16px;}
+
+.modal-footer {
+  padding: 2px 16px;
+  background-color: black;
+  color: white;
+}
+
+/* https://www.w3schools.com/howto/howto_js_alert.asp */
+.alert {
+  padding: 20px;
+  background-color: #333333;
+  color: white;
+}
+
+.alert.success {
+  background-color: #2fb886;
+}
+
+.alert.info {
+  background-color: #47a8f5;
+}
+
+.alert.warning {
+  background-color: #ffa92b;
+}
+
+.alert.error {
+  background-color: #f44336;
+}
+
+.closebtn {
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.closebtn:hover {
+  color: black;
+}
+
+ul.socialaccount_providers {
+  list-style-type: none;
+  padding: 0;
+}
+
+.socialaccount_provider {
+  padding: 5px;
+  border-radius: 2px;
+  border: 1px solid grey;
+  text-decoration: none;
+  background-color: #f3f3f3;
+}
+
+.socialaccount_provider:hover {
+  box-shadow: 0px 0px 5px grey;
+}
+
+.socialaccount_provider::before {
+  content: "";
+  background-image:url('images/orcid.svg');
+  background-size: 100% 100%;
+  display: inline-block;
+  height: 20px;
+  width:20px;
+  position:relative;
+  top:5px;
+  margin-right: 5px;
 }

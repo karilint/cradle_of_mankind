@@ -1,31 +1,340 @@
-from django.core.exceptions import ObjectDoesNotExist
-from cradle_of_mankind.decorators import remember_last_query_params
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from cradle_of_mankind import settings
-from csv import DictReader
 import json
-import os
 import re
-import random
+from cradle_of_mankind.decorators import remember_last_query_params
 from django.contrib import messages
-from masterdata.forms import MasterFieldForm, SourceDataImportForm
 from users.views import user_is_data_admin
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
-from masterdata.models import (
-    EditComment, MasterData, MasterEntity, MasterValue, Source,
+from .forms import MasterFieldForm, SourceDataImportForm
+from .utils import *
+from .models import (
+    EditComment,
+    MasterData,
+    MasterEntity,
+    MasterValue,
+    Source,
     SourceData,
-    SourceEntity,
     SourceField,
-    SourceValue,
     MasterField
 )
 
 
 @login_required
 @user_passes_test(user_is_data_admin)
+def manage_masters(request):
+    sources = Source.objects.all()
+    if len(sources) < 1:
+        messages.info(
+            request, "You haven't yet added any sources. Please import one first.")
+        return redirect('import-source-data')
+    return render(request, 'masterdata/manage_masters.html',
+                  {'sources': sources})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def create_master(request, source_pk, stage):
+    source = Source.objects.get(pk=source_pk)
+    source_fields = source.sourcefield_set.all()
+    title = "Create Master"
+
+    if stage == 1:
+        if request.method == 'POST':
+            stage1_post(request, source, source_fields, stage)
+            return redirect('create-master', source_pk, stage+1)
+        examples = create_examples(source)
+        instructions = 'Stage 1/4: Choose which fields need to be divided into parts.'
+        return render(request, 'masterdata/create_master_stage1.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'examples': examples})
+
+    elif stage == 2:
+        source_fields = source_fields.filter(is_divided=True)
+        if request.method == 'POST':
+            stage2_post(request, source, source_fields, stage)
+            next_stage = stage+1 if "next" in request.POST else stage-1
+            return redirect('create-master', source_pk, next_stage)
+        examples = create_examples(source)
+        instructions = 'Stage 2/4: Give delimiters that will be used to divide the source fields you want to be in masterdata.'
+        return render(request, 'masterdata/create_master_stage2.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'examples': examples})
+
+    elif stage == 3:
+        master_fields = MasterField.objects.all()
+        if request.method == 'POST':
+            masterdata_rules = {}
+            for master_field in master_fields:
+                masterdata_rules[str(master_field.id)] = {}
+            stage3_post(request, source, source_fields,
+                        masterdata_rules, stage)
+            next_stage = stage+1 if 'next' in request.POST else stage-1
+            return redirect('create-master', source_pk, next_stage)
+        selection_rules = get_selection_rules(
+            source, master_fields)
+        examples = create_examples_with_parts(source)
+        instructions = 'Stage 3/4: Assign rules for master field mapping.'
+        return render(request, 'masterdata/create_master_stage3.html',
+                      {'title': title,
+                       'instruction': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'master_fields': master_fields,
+                       'rules': selection_rules,
+                       'examples': examples})
+
+    elif stage == 4:
+        if request.method == 'POST':
+            master_rules = json.loads(source.masterdata_rules)
+            master_fields = MasterField.objects.all()
+            for source_entity in source.sourceentity_set.all():
+                master_key = get_master_key_for_source_entity(
+                    source_entity, master_rules)
+                try:
+                    master_entity = MasterEntity.objects.get(
+                        master_key=master_key)
+                    master_entity.source_entities.add(source_entity)
+                    for master_field in MasterField.objects.all():
+                        source_datas = []
+                        master_field_rules = master_rules[str(master_field.id)]
+                        if not master_field_rules:
+                            continue
+                        ordered_keys = sorted(list(master_field_rules.keys()))
+                        master_value = MasterValue()
+                        master_data = MasterData.objects.get(
+                            master_entity=master_entity, master_field=master_field)
+                        master_value.master_field = master_field
+                        master_value.value = ''
+                        for key in ordered_keys:
+                            source_field = SourceField.objects.get(
+                                pk=master_field_rules[key]['source_field'])
+                            source_data = SourceData.objects.get(
+                                source_entity=source_entity, source_field=source_field)
+                            if source_field.is_divided:
+                                part = master_field_rules[key]['part']
+                                value = re.split(
+                                    source_field.delimiters, source_data.source_value.value)[part-1]
+                                master_value.value += value
+                                master_value.value += master_field_rules[key]['ending']
+                            else:
+                                master_value.value += source_data.source_value.value
+                                master_value.value += master_field_rules[key]['ending']
+                            source_datas.append(source_data)
+                        master_value.master_data = master_data
+                        master_value.save()
+                        master_data.save()
+                        for data in source_datas:
+                            master_data.source_data.add(data)
+                            master_value.source_data.add(data)
+                        master_field.save()
+
+                except MasterEntity.DoesNotExist:
+                    master_entity = MasterEntity()
+                    master_entity.master_key = master_key
+                    master_entity.source = source
+                    master_entity.save()
+                    master_entity.source_entities.add(source_entity)
+                    stage4_post(source, source_entity, master_entity,
+                                master_fields, master_rules)
+            source.master_created = True
+            source.save()
+            return redirect('manage-masters')
+        master_fields = MasterField.objects.all()
+        example_table = create_example_table(source)
+        instructions = 'Stage 4/4: Sample rows with given rules. Looks good?'
+        return render(request, 'masterdata/create_master_stage4.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'master_fields': master_fields,
+                       'example_table': example_table})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def edit_master(request, source_pk, stage):
+    source = Source.objects.get(pk=source_pk)
+    source_field_ids = []
+    for source_field in source.sourcefield_set.all():
+        if len(source_field.sourcedata_set.first().masterdata_set.all()) == 0:
+            source_field_ids.append(source_field.id)
+    source_fields = SourceField.objects.filter(pk__in=source_field_ids)
+    title = "Edit Master"
+
+    if stage == 1:
+        if request.method == 'POST':
+            stage1_post(request, source, source_fields, stage)
+            return redirect('edit-master', source_pk, stage+1)
+        examples = create_examples(source)
+        instructions = "Stage 1/4: Choose which fields need to be divided into parts "\
+                       "(only the fields that haven't been mapped yet are shown)."
+        return render(request, 'masterdata/create_master_stage1.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'examples': examples})
+
+    elif stage == 2:
+        source_fields = source_fields.filter(is_divided=True)
+        if request.method == 'POST':
+            stage2_post(request, source, source_fields, stage)
+            next_stage = stage+1 if "next" in request.POST else stage-1
+            return redirect('edit-master', source_pk, next_stage)
+        examples = create_examples(source)
+        instructions = 'Stage 2/4: Give delimiters that will be used to divide the source fields you want to be in masterdata.'
+        return render(request, 'masterdata/create_master_stage2.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'examples': examples})
+
+    elif stage == 3:
+        master_fields = MasterField.objects.exclude(sources=source)
+        if request.method == 'POST':
+            if source.masterdata_rules:
+                masterdata_rules = json.loads(source.masterdata_rules)
+            else:
+                masterdata_rules = {}
+                for master_field in MasterField.objects.all():
+                    masterdata_rules[master_field.id] = {}
+            stage3_post(request, source, source_fields,
+                        masterdata_rules, stage)
+            next_stage = stage+1 if 'next' in request.POST else stage-1
+            return redirect('edit-master', source_pk, next_stage)
+        selection_rules = get_selection_rules(
+            source, master_fields)
+        examples = create_examples_with_parts(source)
+        instructions = 'Stage 3/4: Assign rules for master field mapping.'
+        return render(request, 'masterdata/create_master_stage3.html',
+                      {'title': title,
+                       'instruction': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'master_fields': master_fields,
+                       'rules': selection_rules,
+                       'examples': examples})
+
+    elif stage == 4:
+        if request.method == 'POST':
+            master_rules = json.loads(source.masterdata_rules)
+            master_fields = MasterField.objects.exclude(sources=source)
+            for source_entity in source.sourceentity_set.all():
+                master_entity = MasterEntity.objects.get(
+                    source_entity=source_entity)
+            stage4_post(source, source_entity, master_entity,
+                        master_fields, master_rules)
+            source.master_created = True
+            source.save()
+            return redirect('manage-masters')
+        master_fields = MasterField.objects.all()
+        example_table = create_example_table(source)
+        instructions = 'Stage 4/4: Sample rows with given rules. Looks good?'
+        return render(request, 'masterdata/create_master_stage4.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'master_fields': master_fields,
+                       'example_table': example_table})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def delete_master(request, source_pk):
+    source = Source.objects.get(pk=source_pk)
+    if request.method == 'POST':
+        MasterValue.objects.filter(
+            source_data__source_entity__source=source).delete()
+        MasterData.objects.filter(mastervalue__isnull=True).distinct().delete()
+        MasterEntity.objects.filter(
+            masterdata__isnull=True).distinct().delete()
+
+        source_entities = SourceEntity.objects.filter(source=source)
+        for source_entity in source_entities:
+            source_entity.masterentity_set.clear()
+        source_data = SourceData.objects.filter(source_entity__source=source)
+        for data in source_data:
+            data.masterdata_set.clear()
+
+        source.master_created = False
+        source.masterdata_stage = 0
+        source.masterdata_rules = None
+        source.save()
+        messages.success(
+            request, f"Master data for {source.name} has been deleted.")
+        return redirect('manage-masters')
+    return render(request, 'masterdata/delete_master.html',
+                  {'source': source})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_fields(request):
+    if request.method == 'POST':
+        form = MasterFieldForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "The field was added succesfully.")
+            return redirect('master-fields')
+        else:
+            messages.error(
+                request, "Cannot add that field. Did you try to add a field that already exists?")
+    master_fields = MasterField.objects.all().order_by('name')
+    form = MasterFieldForm()
+    return render(request, 'masterdata/master_fields.html',
+                  {'master_fields': master_fields,
+                   'form': form})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_field_edit(request, master_field_pk):
+    master_field = MasterField.objects.get(pk=master_field_pk)
+    if request.method == 'POST':
+        form = MasterFieldForm(request.POST, instance=master_field, initial={
+                               'name': master_field.name,
+                               'description': master_field.description,
+                               'primary_key': master_field.primary_key})
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'The master field has been updated!')
+            return redirect('master-fields')
+    else:
+        form = MasterFieldForm(instance=master_field)
+    return render(request, 'masterdata/master_field_edit.html',
+                  {'form': form,
+                   'master_field': master_field})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_field_delete(request, master_field_pk):
+    master_field = MasterField.objects.get(pk=master_field_pk)
+    if request.method == 'POST':
+        if len(master_field.masterdata_set.all()) == 0 and len(master_field.mastervalue_set.all()) == 0:
+            master_field.delete()
+            messages.success(
+                request, "The master field was deleted succesfully!")
+        else:
+            messages.error(request,
+                           "The master field could not be deleted. There is some master data using it!")
+        return redirect('master-fields')
+    return render(request, 'masterdata/master_field_delete.html',
+                  {'master_field': master_field})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
 def master_field_edit_display_order(request):
-    master_fields = MasterField.objects.exclude(name='Empty').order_by('name')
+    master_fields = MasterField.objects.order_by('name')
     if request.method == 'POST':
         for field in master_fields:
             new_value = request.POST[field.name]
@@ -47,418 +356,11 @@ def master_field_edit_display_order(request):
 
 @login_required
 @user_passes_test(user_is_data_admin)
-def master_data_edit(request, master_data_pk):
-    data = MasterData.objects.get(pk=master_data_pk)
-    if request.method == 'POST':
-        new_value = request.POST['new_value']
-        old_value = data.master_value
-        try:
-            master_value = MasterValue.objects.filter(
-                master_field=data.master_field).get(value=new_value)
-        except MasterValue.DoesNotExist:
-            master_value = MasterValue()
-            master_value.value = new_value
-            master_value.master_field = data.master_field
-            master_value.save()
-        data.master_value = master_value
-        data.save()
-        comment = EditComment()
-        comment.text = request.POST['comment']
-        comment.prev_value = old_value.value
-        comment.new_value = new_value
-        comment.masterdata = data
-        comment.save()
-        if not old_value.masterdata_set.all():
-            old_value.delete()
-        return redirect('master-list')
-
-    source = data.master_entity.source
-    source_data = data.source_data.first()
-    comments = data.editcomment_set.all()
-    return render(request, 'masterdata/master_data_edit.html',
-                  {'data': data,
-                   'source': source,
-                   'source_data': source_data,
-                   'comments': comments})
-
-
-@ login_required
-@ user_passes_test(user_is_data_admin)
-def master_field_delete(request, master_field_pk):
-    master_field = MasterField.objects.get(pk=master_field_pk)
-    if request.method == 'POST':
-        if master_field.name == 'Empty':
-            messages.error(request, "You cannot delete the Empty field!")
-        elif len(master_field.sources.all()) == 0:
-            master_field.delete()
-            messages.success(
-                request, "The master field was deleted succesfully!")
-        else:
-            messages.error(request,
-                           "The master field could not be deleted. There are some sources that are using it!")
-        return redirect('master-fields')
-    return render(request, 'masterdata/master_field_delete.html',
-                  {'master_field': master_field})
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
-def master_field_edit(request, master_field_pk):
-    master_field = MasterField.objects.get(pk=master_field_pk)
-    if request.method == 'POST':
-        form = MasterFieldForm(request.POST, instance=master_field)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'The master field has been updated!')
-            return redirect('master-fields')
-    else:
-        form = MasterFieldForm(instance=master_field)
-    return render(request, 'masterdata/master_field_edit.html',
-                  {'form': form,
-                   'master_field': master_field})
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
-def manage_masters(request):
-    sources = Source.objects.all()
-    return render(request, 'masterdata/manage_masters.html',
-                  {'sources': sources})
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
-def edit_master(request, source_pk):
-    source = Source.objects.get(pk=source_pk)
-    if request.method == 'POST':
-        pass
-    source_fields = source.sourcefield_set.all()
-    master_fields = MasterField.objects.all().order_by('name')
-    examples = create_examples(source)
-    return render(request, 'masterdata/edit_master.html',
-                  {'source': source,
-                   'source_fields': source_fields,
-                   'master_fields': master_fields,
-                   'examples': examples})
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
-def create_master(request, source_pk, stage):
-    source = Source.objects.get(pk=source_pk)
-
-    if stage == 1:
-        source_fields = source.sourcefield_set.all()
-        if request.method == 'POST':
-            data_was_changed = False
-            for source_field in source_fields:
-                if request.POST.get(source_field.name) == 'True':
-                    if not source_field.is_divided:
-                        source_field.is_divided = True
-                        data_was_changed = True
-                else:
-                    if source_field.is_divided:
-                        source_field.is_divided = False
-                        source_field.delimiters = ''
-                        source_field.num_of_parts = 1
-                        data_was_changed = True
-                source_field.save()
-            source.masterdata_stage = stage
-            if data_was_changed:
-                source.masterdata_rules = ''
-            source.save()
-            return redirect('create-master', source_pk, stage+1)
-        examples = create_examples(source)
-        return render(request, 'masterdata/create_master_stage1.html',
-                      {'source': source,
-                       'source_fields': source_fields,
-                       'examples': examples})
-
-    elif stage == 2:
-        source_fields = source.sourcefield_set.filter(is_divided=True)
-        if request.method == 'POST':
-            data_was_changed = False
-            for source_field in source_fields:
-                original_delimiters = source_field.delimiters
-                original_num_of_parts = source_field.num_of_parts
-                source_field.delimiters = request.POST.get(
-                    source_field.name + '_delimiters')
-                source_field.num_of_parts = int(request.POST.get(
-                    source_field.name + '_num_of_parts'))
-                if source_field.delimiters != original_delimiters or source_field.num_of_parts != original_num_of_parts:
-                    data_was_changed = True
-                source_field.save()
-            source.masterdata_stage = stage
-            if data_was_changed:
-                source.masterdata_rules = ''
-            source.save()
-            if "next" in request.POST:
-                next_stage = stage+1
-            else:
-                next_stage = stage-1
-            return redirect('create-master', source_pk, next_stage)
-        examples = create_examples(source)
-        return render(request, 'masterdata/create_master_stage2.html',
-                      {'source': source,
-                       'source_fields': source_fields,
-                       'examples': examples})
-
-    elif stage == 3:
-        source_fields = source.sourcefield_set.all()
-        master_fields = MasterField.objects.all()
-        if request.method == 'POST':
-            masterdata_rules = {}
-            for master_field in master_fields:
-                masterdata_rules[master_field.id] = {}
-            for source_field in source_fields:
-                if source_field.is_divided:
-                    for i in range(1, source_field.num_of_parts+1):
-                        master_field_id = int(request.POST.get(
-                            f"{source_field.id}_{i}_master"))
-                        ordering = request.POST.get(
-                            f"{source_field.id}_{i}_ordering")
-                        ending = request.POST.get(
-                            f"{source_field.id}_{i}_ending")
-                        masterdata_rules[master_field_id][ordering] = {
-                            'source_field': source_field.id,
-                            'part': i,
-                            'ending': ending}
-                else:
-                    master_field_id = int(request.POST.get(
-                        f"{source_field.id}_master"))
-                    ordering = request.POST.get(f"{source_field.id}_ordering")
-                    ending = request.POST.get(f"{source_field.id}_ending")
-                    masterdata_rules[master_field_id][ordering] = {
-                        'source_field': source_field.id,
-                        'ending': ending}
-            source.masterdata_rules = json.dumps(masterdata_rules)
-            source.masterdata_stage = stage
-            source.save()
-            if "next" in request.POST:
-                next_stage = stage+1
-            else:
-                next_stage = stage-1
-            return redirect('create-master', source_pk, next_stage)
-        selection_rules = {}
-        for source_field in source_fields:
-            if source_field.is_divided:
-                selection_rules[source_field] = {}
-                for part in range(1, source_field.num_of_parts+1):
-                    field_rules = {}
-                    selection_rules[source_field][part] = field_rules
-                    field_rules['master_field'] = MasterField.objects.get(
-                        name='Empty')
-                    field_rules['ordering'] = 1
-                    field_rules['ending'] = ''
-            else:
-                field_rules = {}
-                selection_rules[source_field] = {}
-                selection_rules[source_field][1] = field_rules
-                field_rules['master_field'] = MasterField.objects.get(
-                    name='Empty')
-                field_rules['ordering'] = 1
-                field_rules['ending'] = ''
-        if source.masterdata_rules:
-            rules = json.loads(source.masterdata_rules)
-            for master_field in master_fields.exclude(name='Empty'):
-                master_field_rules = rules[str(master_field.id)]
-                for ordering in master_field_rules.keys():
-                    ending = master_field_rules[ordering]['ending']
-                    source_field = SourceField.objects.get(
-                        pk=master_field_rules[ordering]['source_field'])
-                    if source_field.is_divided:
-                        part = master_field_rules[ordering]['part']
-                    else:
-                        part = 1
-                    selection_rules[source_field][part]['master_field'] = master_field
-                    selection_rules[source_field][part]['ordering'] = int(
-                        ordering)
-                    selection_rules[source_field][part]['ending'] = ending
-        examples = create_examples_with_parts(source)
-        return render(request, 'masterdata/create_master_stage3.html',
-                      {'source': source,
-                       'source_fields': source_fields,
-                       'master_fields': master_fields,
-                       'rules': selection_rules,
-                       'examples': examples})
-
-    elif stage == 4:
-        if request.method == 'POST':
-            for source_entity in source.sourceentity_set.all():
-                master_entity = MasterEntity()
-                master_entity.source = source
-                master_entity.save()
-                master_entity.source_entity.add(source_entity)
-                master_rules = json.loads(source.masterdata_rules)
-
-                for master_field in MasterField.objects.exclude(name='Empty'):
-                    source_datas = []
-                    master_field_rules = master_rules[str(master_field.id)]
-                    ordered_keys = sorted(list(master_field_rules.keys()))
-                    master_value = MasterValue()
-                    master_data = MasterData()
-                    master_value.master_field = master_field
-                    master_value.value = ''
-                    for key in ordered_keys:
-                        source_field = SourceField.objects.get(
-                            pk=master_field_rules[key]['source_field'])
-                        source_data = SourceData.objects.get(
-                            source_entity=source_entity, source_field=source_field)
-                        if source_field.is_divided:
-                            part = master_field_rules[key]['part']
-                            value = re.split(
-                                source_field.delimiters, source_data.source_value.value)[part-1]
-                            master_value.value += value
-                            master_value.value += master_field_rules[key]['ending']
-                        else:
-                            master_value.value += source_data.source_value.value
-                            master_value.value += master_field_rules[key]['ending']
-                        source_datas.append(source_data)
-                    master_value.save()
-                    master_data.master_entity = master_entity
-                    master_data.master_field = master_field
-                    master_data.master_value = master_value
-                    master_data.save()
-                    for data in source_datas:
-                        master_data.source_data.add(data)
-                    master_field.sources.add(source)
-                    master_field.save()
-            source.master_created = True
-            source.save()
-            return redirect('manage-masters')
-        source_fields = source.sourcefield_set.all()
-        master_fields = MasterField.objects.exclude(name='Empty')
-        example_table = create_example_table(source)
-        return render(request, 'masterdata/create_master_stage4.html',
-                      {'source': source,
-                       'source_fields': source_fields,
-                       'master_fields': master_fields,
-                       'example_table': example_table})
-
-
-def create_examples(source):
-    examples = {}
-    for field in source.sourcefield_set.all():
-        data = random.choice(field.sourcedata_set.all())
-        if len(data.source_value.value) > 30:
-            examples[field] = data.source_value.value[:30] + '...'
-        else:
-            examples[field] = data.source_value.value
-    return examples
-
-
-def create_examples_with_parts(source):
-    examples = {}
-    for field in source.sourcefield_set.all():
-        data = random.choice(field.sourcedata_set.all())
-        if field.is_divided:
-            examples[field] = {}
-            for i in range(1, field.num_of_parts+1):
-                value = re.split(field.delimiters,
-                                 data.source_value.value)[i-1]
-                if len(value) > 30:
-                    examples[field][i] = value[:30] + '...'
-                else:
-                    examples[field][i] = value
-        else:
-            if len(data.source_value.value) > 30:
-                examples[field] = data.source_value.value[:30] + '...'
-            else:
-                examples[field] = data.source_value.value
-    return examples
-
-
-def create_example_table(source):
-    rows = []
-    source_entity_ids = list(
-        source.sourceentity_set.all().values_list('id', flat=True))
-    source_entity_ids = random.sample(source_entity_ids, 5)
-    source_entities = source.sourceentity_set.filter(pk__in=source_entity_ids)
-    for source_entity in source_entities:
-        row = {}
-        master_rules = json.loads(source.masterdata_rules)
-        for master_field in MasterField.objects.exclude(name='Empty'):
-            master_field_rules = master_rules[str(master_field.id)]
-            ordered_keys = sorted(list(master_field_rules.keys()))
-            master_value = ''
-            for key in ordered_keys:
-                source_field = SourceField.objects.get(
-                    pk=master_field_rules[key]['source_field'])
-                source_data = SourceData.objects.get(
-                    source_entity=source_entity, source_field=source_field)
-                if source_field.is_divided:
-                    part = master_field_rules[key]['part']
-                    value = re.split(source_field.delimiters,
-                                     source_data.source_value.value)[part-1]
-                    master_value += value
-                    master_value += master_field_rules[key]['ending']
-                else:
-                    master_value += source_data.source_value.value
-                    master_value += master_field_rules[key]['ending']
-            row[master_field] = master_value
-        rows.append(row)
-    return rows
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
-def master_fields(request):
-    if request.method == 'POST':
-        form = MasterFieldForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "The field was added succesfully.")
-            return redirect('master-fields')
-        else:
-            messages.error(
-                request, "Cannot add that field. Did you try to add a field that already exists?")
-    master_fields = MasterField.objects.exclude(name='Empty').order_by('name')
-    form = MasterFieldForm()
-    return render(request, 'masterdata/master_fields.html',
-                  {'master_fields': master_fields,
-                   'form': form})
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
-@remember_last_query_params('master-list', ['page', 'source'])
-def master_list(request):
-    master_sources = get_master_sources()
-    if len(master_sources) < 1:
-        if len(Source.objects.all()) < 1:
-            messages.error(
-                request, "You haven't yet created any masterdata. Please import a source and then create a master from it.")
-            return redirect('import-source-data')
-        else:
-            messages.error(
-                request, "You haven't yet created any masterdata. Please pick an existing source and create masterdata from it.")
-            return redirect('manage-masters')
-    if request.GET.get('source') == 'all':
-        master_fields = MasterField.objects.exclude(display_order=None)
-        master_entities = get_all_master_entities(request)
-        master_entity_data = get_master_entity_data(
-            master_entities, master_fields)
-    else:
-        source = get_source(request)
-        master_fields = source.masterfield_set.exclude(display_order=None)
-        master_entities = get_master_entities(request, source)
-        master_entity_data = get_master_entity_data(
-            master_entities, master_fields)
-    return render(request, 'masterdata/master_list.html',
-                  {'selection_value': request.GET.get('source'),
-                   'master_sources': master_sources,
-                   'master_fields': master_fields,
-                   'master_entity_data': master_entity_data,
-                   'page_obj': master_entities})
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
 @remember_last_query_params('source-list', ['page', 'source'])
 def source_list(request):
     sources = Source.objects.all()
     if len(sources) < 1:
-        messages.error(
+        messages.info(
             request, "You haven't yet added any sources. Please import one first.")
         return redirect('import-source-data')
     source = get_source(request)
@@ -474,188 +376,149 @@ def source_list(request):
                    'page_obj': source_entitites})
 
 
-def get_master_sources():
-    master_sources = []
-    for source in Source.objects.all():
-        if len(source.masterentity_set.all()) != 0:
-            master_sources.append(source)
-    return master_sources
-
-
-def get_source_entity_data(entities, fields):
-    data = {}
-    for entity in entities:
-        entity_data = []
-        for field in fields:
-            value = SourceData.objects.filter(
-                source_entity=entity, source_field=field).first().source_value.value
-            entity_data.append(value)
-        data[entity] = entity_data
-    return data
-
-
-def get_master_entity_data(entities, fields):
-    data = {}
-    for entity in entities:
-        entity_data = []
-        for field in fields:
-            value = MasterData.objects.filter(
-                master_entity=entity, master_field=field).first()
-            entity_data.append(value)
-        data[entity] = entity_data
-    return data
-
-
-def get_source(request):
-    source_id = request.GET.get('source')
-    if source_id:
-        try:
-            source = Source.objects.get(pk=source_id)
-        except Source.DoesNotExist:
-            source = Source.objects.all().first()
+@login_required
+@user_passes_test(user_is_data_admin)
+@remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive'])
+def master_list(request):
+    master_sources = get_master_sources()
+    if len(master_sources) < 1:
+        if len(Source.objects.all()) < 1:
+            messages.info(
+                request, "You haven't yet created any masterdata. Please import a source and then create a master from it.")
+            return redirect('import-source-data')
+        else:
+            messages.info(
+                request, "You haven't yet created any masterdata. Please pick an existing source and create masterdata from it.")
+            return redirect('manage-masters')
+    search = request.GET.get('search', default='').strip()
+    matching = request.GET.get('matching', default='exact')
+    case_sensitive = request.GET.get('case-sensitive', default='yes')
+    master_fields = MasterField.objects.exclude(display_order=None)
+    if search:
+        master_entities = get_master_entities(
+            request, search, matching, case_sensitive)
     else:
-        source = Source.objects.all().first()
-    return source
+        master_entities = get_all_master_entities(request)
+    master_entity_data = get_master_entity_data(
+        master_entities, master_fields)
+    context = {
+        'selection_value': request.GET.get('source'),
+        'master_sources': master_sources,
+        'master_fields': master_fields,
+        'master_entity_data': master_entity_data,
+        'page_obj': master_entities,
+    }
+    if search:
+        context['search'] = search
+        context['matching'] = matching
+        context['case_sensitive'] = case_sensitive
+    else:
+        context['search'] = ''
+        context['matching'] = 'exact'
+        context['case_sensitive'] = 'yes'
 
-
-def get_source_entities(request, source):
-    source_entities = SourceEntity.objects.filter(source=source)
-    page = request.GET.get('page', 1)
-    paginator = Paginator(source_entities, 15)
-    try:
-        page_entities = paginator.page(page)
-    except PageNotAnInteger:
-        page_entities = paginator.page(1)
-    except EmptyPage:
-        page_entities = paginator.page(paginator.num_pages)
-    return page_entities
-
-
-def get_master_entities(request, source):
-    master_entities = MasterEntity.objects.filter(source=source)
-    page = request.GET.get('page', 1)
-    paginator = Paginator(master_entities, 15)
-    try:
-        page_entities = paginator.page(page)
-    except PageNotAnInteger:
-        page_entities = paginator.page(1)
-    except EmptyPage:
-        page_entities = paginator.page(paginator.num_pages)
-    return page_entities
-
-
-def get_all_master_entities(request):
-    master_entities = MasterEntity.objects.all()
-    page = request.GET.get('page', 1)
-    paginator = Paginator(master_entities, 15)
-    try:
-        page_entities = paginator.page(page)
-    except PageNotAnInteger:
-        page_entities = paginator.page(1)
-    except EmptyPage:
-        page_entities = paginator.page(paginator.num_pages)
-    return page_entities
+    return render(request, 'masterdata/master_list.html', context)
 
 
 @login_required
 @user_passes_test(user_is_data_admin)
-def import_data(request):
+def master_entity_view(request, master_entity_pk):
+    if request.method == 'POST':
+        pass
+    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
+    master_fields = MasterField.objects.filter(
+        masterdata__master_entity=master_entity)
+    source_entities = master_entity.source_entities.all()
+    master_entity_data = get_separated_master_entity_data(
+        master_entity, master_fields, source_entities)
+    return render(request, 'masterdata/master_entity_view.html',
+                  {'master_entity': master_entity,
+                   'master_fields': master_fields,
+                   'source_entities': source_entities,
+                   'master_entity_data': master_entity_data})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_entity_split(request, master_entity_pk, source_entity_pk):
+    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
+    source_entity = SourceEntity.objects.get(pk=source_entity_pk)
+    source = source_entity.source
+    master_rules = json.loads(source.masterdata_rules)
+    if request.method == 'POST':
+        new_master_entity = MasterEntity()
+        new_master_entity.source = source
+        new_master_entity.master_key = get_master_key_for_source_entity(
+            source_entity, master_rules)
+        new_master_entity.hidden_key = len(
+            source_entity.masterentity_set.all())
+        new_master_entity.save()
+        for data in source_entity.sourcedata_set.all():
+            data.masterdata_set.clear()
+        for master_field in MasterField.objects.all():
+            master_value = MasterValue.objects.filter(
+                master_data__master_entity=master_entity,
+                source_data__source_entity=source_entity,
+                master_field=master_field).first()
+            print(master_value)
+            master_data = MasterData()
+            master_data.master_entity = new_master_entity
+            master_data.master_field = master_field
+            master_data.save()
+            for data in master_value.source_data.all():
+                master_data.source_data.add(data)
+            master_value.master_data = master_data
+            master_value.save()
+
+        source_entity.masterentity_set.clear()
+        new_master_entity.source_entities.add(source_entity)
+        return redirect('master-list')
+
+    return render(request, 'masterdata/master_entity_split.html',
+                  {'master_entity': master_entity,
+                   'source_entity': source_entity})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def import_source_data(request):
+    return render(request, 'masterdata/import_source_data.html')
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def update_existing_source(request):
+    context = {'sources': Source.objects.all()}
+    return render(request, 'masterdata/update_existing_source.html', context)
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def import_new_source(request):
     if request.method == 'POST':
         form = SourceDataImportForm(request.POST, request.FILES)
         if form.is_valid():
-            source_name = request.POST['source_name']
-            delimiter = request.POST['delimiter']
-            f = request.FILES['file']
-            save_uploaded_file(f)
-            save_data(source_name, delimiter, f)
-            verify_empty_field()
-            messages.success(request, "Import was succesful!")
-            redirect('index')
+            source = form.save()
+            save_source_fields(source)
+            messages.success(
+                request, "Import was succesful! Next give the source its primary key(s).")
+            return redirect('save-new-source-data', source.pk)
     form = SourceDataImportForm()
-    return render(request, 'masterdata/import_source_data.html', {'form': form})
+    return render(request, 'masterdata/import_new_source.html', {'form': form})
 
 
-def verify_empty_field():
-    try:
-        MasterField.objects.get(name="Empty")
-    except ObjectDoesNotExist:
-        empty = MasterField()
-        empty.name = "Empty"
-        empty.description = ""
-        empty.save()
+@login_required
+@user_passes_test(user_is_data_admin)
+def save_new_source_data(request, source_pk):
+    source = Source.objects.get(pk=source_pk)
+    source_fields = source.sourcefield_set.all()
+    if request.method == 'POST':
+        set_primary_keys(request, source_fields)
+        save_data(source)
+        messages.success(
+            request, "Import was succesful! All the data was saved.")
+        return redirect('manage-masters')
 
-
-def save_data(source_name, delimiter, file):
-    with open(os.path.join(settings.MEDIA_ROOT, 'masterdata', file.name), encoding='utf8') as f:
-        try:
-            source = Source.objects.get(name=source_name)
-        except Source.DoesNotExist:
-            source = Source()
-            source.name = source_name
-            source.save()
-
-        data = DictReader(f)
-        rows = 0
-        for row in data:
-            rows += 1
-        f.seek(0)
-        data = DictReader(f, delimiter=delimiter)
-        print(f"Processing... ({rows} rows)")
-        for index, row in enumerate(data, 1):
-            print_progress(index, rows)
-
-            source_entity = SourceEntity()
-            source_entity.source = source
-            source_entity.save()
-
-            if index == 1:
-                for order, key in enumerate(row.keys()):
-                    try:
-                        source_field = SourceField.objects.filter(
-                            source=source).get(name=key)
-                    except SourceField.DoesNotExist:
-                        source_field = SourceField()
-                    source_field.source = source
-                    source_field.name = key
-                    source_field.display_order = order
-                    source_field.save()
-
-            for field in row.keys():
-                source_field = SourceField.objects.filter(
-                    source=source).get(name=field)
-                try:
-                    source_value = SourceValue.objects.filter(
-                        source_field=source_field).get(value=row[field])
-                except SourceValue.DoesNotExist:
-                    source_value = SourceValue()
-                source_value.source_field = source_field
-                source_value.value = row[field]
-                source_value.save()
-
-                try:
-                    source_data = SourceData.objects.filter(source_entity=source_entity).filter(
-                        source_field=source_field).get(source_value=source_value)
-                except SourceData.DoesNotExist:
-                    source_data = SourceData()
-                source_data.source_entity = source_entity
-                source_data.source_field = source_field
-                source_data.source_value = source_value
-                source_data.save()
-
-
-def print_progress(index, rows):
-    div = rows//5
-    if index % div == 0 and div != 0:
-        print(f"Processing... ({(2*index)//div}0% done)")
-
-
-def save_uploaded_file(f):
-    try:
-        os.mkdir(os.path.join(settings.MEDIA_ROOT, 'masterdata'))
-    except:
-        pass
-
-    path_to_file = os.path.join(settings.MEDIA_ROOT, 'masterdata', f.name)
-    with open(path_to_file, 'wb+') as destination:
-        for chunk in f.chunks():
-            destination.write(chunk)
+    return render(request, 'masterdata/save_new_source_data.html',
+                  {'source': source,
+                   'source_fields': source_fields})

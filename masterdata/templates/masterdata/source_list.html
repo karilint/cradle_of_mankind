@@ -9,7 +9,11 @@
     <label for="source-query">Select a source:</label>
     <select name="source" id="source-query">
       {% for source in sources %}
-        <option value="{{ source.id }}">{{ source.name }}</option>
+        {% if selected_source == source %}
+          <option value="{{ source.id }}" selected>{{ source.name }}</option>
+        {% else %}
+          <option value="{{ source.id }}">{{ source.name }}</option>
+        {% endif %}
       {% endfor %}
     </select>
     <button class="w3-btn w3-blue w3-round-large" type="submit">Get list</button>
@@ -54,8 +58,5 @@
 
   {% endif %}
 
-  <script>var current_source_id = "{{ selected_source.id }}";</script>
-  <script type="text/javascript" src="{% static 'source_list.js' %}"></script>
-
-{% endblock content%}
+{% endblock content %}
 

@@ -20,13 +20,13 @@
             <td>{{source.name}}</td>
             {% if source.master_created %}
               <td><i class="material-icons" style="color: darkgreen">check_circle</i></td>
-              <td><a href="{% url 'create-master' source.id 1%}"><i class="material-icons"></i></a></td>
-              <td><a href="{% url 'edit-master' source.id %}"><i class="material-icons">edit</i></a></td>
-              <td><a href="#"><i class="material-icons">delete</i></a></td>
+              <td><a href="{% url 'create-master' source.id 1 %}"><i class="material-icons"></i></a></td>
+              <td><a href="{% url 'edit-master' source.id 1 %}"><i class="material-icons">edit</i></a></td>
+              <td><a href="{% url 'delete-master' source.id %}"><i class="material-icons">delete</i></a></td>
             {% else %}
               <td><i class="material-icons" style="color: darkred;">cancel</i></td>
               <td><a href="{% url 'create-master' source.id 1 %}"><i class="material-icons">add_circle</i></a></td>
-              <td><a href="{% url 'edit-master' source.id %}"><i class="material-icons"></i></a></td>
+              <td><a href="{% url 'edit-master' source.id 1 %}"><i class="material-icons"></i></a></td>
               <td><i class="material-icons"></i></td>
             {% endif %}
         </tr>
