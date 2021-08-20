@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <h3>Edit {{master_field.name}}</h3>
+
+  <form class="w3-container w3-padding" method="POST">
+    {% csrf_token %}
+    <label for="new_value">Enter a new value:</label>
+    <input id="new_value" type="text" name="new_value" placeholder="{{master_value.value}}">
+    <label for="comment">Comment the edit:</label>
+    <input id="comment" type="text" name="comment">
+    <button class="w3-btn w3-grey w3-round-large" type="submit">Edit</button>
+    <a href="{% url 'master-entity-view' master_entity.pk %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
+  </form>
+
+  {% if comments %}
+    <h2>Editing comments</h2>
+    <table class="w3-margin w3-table-all">
+      </tr>
+        <th>Date</th>
+        <th>Previous value</th>
+        <th>New value</th>
+        <th>Comment</th>
+      </tr>
+      {% for comment in comments %}
+        <tr>
+          <td>{{comment.date}}</td>
+          <td>{{comment.prev_value}}</td>
+          <td>{{comment.new_value}}</td>
+          <td>{{comment.text}}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+
+{% endblock content %}
+
+

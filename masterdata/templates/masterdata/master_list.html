@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load my_filters %}
 {% load static %}
 
 {% block content %}
@@ -8,68 +9,62 @@
     <button style="float: right" onclick="hide_show()"class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
   </div>
 
-  <form id="hide_show" class="w3-margin" action="{% url 'master-list' %}" method="GET" style="display: none;">
-    <!--
-    <label for="source-query">Select a source:</label>
-    <select name="source" id="source-query">
-      <option value="all">All</option>
-      {% for source in master_sources %}
-        <option value="{{ source.id }}">{{source.name}}</option>
-      {% endfor %}
-    </select>
-    -->
-    <div class="w3-row">
-      <div class="w3-col l8 m6 s4" style="padding-right: 12px;">
-        <label for="search">Search for data values</label>
-        <input type="text" id="search" name="search" value="{{search}}">
+  <div id="hide_show" class="w3-margin" style="display: none;">
+    <form action="{% url 'master-list' %}" method="GET">
+      <div class="w3-row">
+        <div class="w3-col l8 m6 s4" style="padding-right: 12px;">
+          <label for="search">Search for data values</label>
+          <input type="text" id="search" name="search" value="{{search}}">
+        </div>
+        <div class="w3-col l2 m3 s4" style="padding: 0px 12px;">
+          <label for="matching">Matching</label>
+          <select id="matching" name="matching">
+            {% if matching == 'exact' %}
+              <option value="exact" selected>Exact</option>
+            {% else %}
+              <option value="exact">Exact</option>
+            {% endif %}
+
+            {% if matching == 'contains' %}
+              <option value="contains" selected>Contains</option>
+            {% else %}
+              <option value="contains">Contains</option>
+            {% endif %}
+
+            {% if matching == 'startswith' %}
+              <option value="startswith" selected>Starts with</option>
+            {% else %}
+              <option value="startswith">Starts with</option>
+            {% endif %}
+
+            {% if matching == 'endswith' %}
+              <option value="endswith" selected>Ends with</option>
+            {% else %}
+              <option value="endswith">Ends with</option>
+            {% endif %}
+          </select>
+        </div>
+        <div class="w3-col l2 m3 s4" style="padding-left: 12px;">
+          <label for"case-sensitive">Case-sensitive</label>
+          <select id="case-sensitive" name="case-sensitive">
+            {% if case_sensitive == 'no' %}
+              <option value="no" selected>No</option>
+            {% else %}
+              <option value="no">No</option>
+            {% endif %}
+
+            {% if case_sensitive == 'yes' %}
+              <option value="yes" selected>Yes</option>
+            {% else %}
+              <option value="yes">Yes</option>
+            {% endif %}
+          </select>
+        </div>
       </div>
-      <div class="w3-col l2 m3 s4" style="padding: 0px 12px;">
-        <label for="matching">Matching</label>
-        <select id="matching" name="matching">
-          {% if matching == 'exact' %}
-            <option value="exact" selected>Exact</option>
-          {% else %}
-            <option value="exact">Exact</option>
-          {% endif %}
-
-          {% if matching == 'contains' %}
-            <option value="contains" selected>Contains</option>
-          {% else %}
-            <option value="contains">Contains</option>
-          {% endif %}
-
-          {% if matching == 'startswith' %}
-            <option value="startswith" selected>Starts with</option>
-          {% else %}
-            <option value="startswith">Starts with</option>
-          {% endif %}
-
-          {% if matching == 'endswith' %}
-            <option value="endswith" selected>Ends with</option>
-          {% else %}
-            <option value="endswith">Ends with</option>
-          {% endif %}
-        </select>
-      </div>
-      <div class="w3-col l2 m3 s4" style="padding-left: 12px;">
-        <label for"case-sensitive">Case-sensitive</label>
-        <select id="case-sensitive" name="case-sensitive">
-          {% if case_sensitive == 'yes' %}
-            <option value="yes" selected>Yes</option>
-          {% else %}
-            <option value="yes">Yes</option>
-          {% endif %}
-
-          {% if case_sensitive == 'no' %}
-            <option value="no" selected>No</option>
-          {% else %}
-            <option value="no">No</option>
-          {% endif %}
-        </select>
-      </div>
-    </div>
-    <button class="w3-btn w3-blue w3-round-large" type="submit">Filter</button>
-  </form>
+      <button class="w3-btn w3-blue w3-round-large" type="submit">Filter</button>
+      <button class="w3-btn w3-blue w3-round-large" type="submit">Reset</button>
+    </form>
+  </div>
 
   <table class="styled-table" style="width: 100%">
     <thead>
@@ -86,13 +81,7 @@
             <td class="w3-center">
             {% if data_value.mastervalue_set.all|length > 1 %}
               <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">
-                {% for master_value in data_value.mastervalue_set.all %}
-                  {% if forloop.last %}
-                    <span>{{master_value.value}}</span>
-                  {% else %}
-                    <span>{{master_value.value}} | </span>
-                  {% endif %}
-                {% endfor %}
+                {{ data_value|to_string }}
               </a>
             {% else %}
               {% if data_value %}

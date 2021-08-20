@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <form class="w3-container w3-padding" method="POST">
+    {% csrf_token %}
+    <label for="master_entity_select">Select the master_entity you want to merge with</label>
+    <select name="master_entity_select" id="master_entity_select">
+      {% for master_entity in other_master_entities %}
+        <option value="{{master_entity.pk}}">MasterEntity ({{master_entity.pk}})</option>
+      {% endfor %}
+    </select>
+    <button class="w3-btn w3-green w3-round-large" type="submit">Merge</button>
+    <a href="{% url 'master-entity-view' master_entity.pk %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
+  </form>
+
+{% endblock content %}
+
+

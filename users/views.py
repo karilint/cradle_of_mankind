@@ -17,6 +17,7 @@ def user_is_data_admin_or_editor(user):
 
 
 def index(request):
+    return redirect('masterdata-index')
     return render(request, 'index.html')
 
 

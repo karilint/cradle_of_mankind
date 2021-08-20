@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <form class="w3-container w3-padding" method="POST">
+    {% csrf_token %}
+    <label for="master_field_select">Please choose the field you want to edit</label>
+    <select name="master_field_select" id="master_field_select">
+      {% for master_field in master_fields %}
+        <option value="{{master_field.pk}}">{{master_field.name}}</option>
+      {% endfor %}
+    </select>
+    <button class="w3-btn w3-green w3-round-large" type="submit">Go edit</button>
+  </form>
+
+{% endblock content %}
+
+

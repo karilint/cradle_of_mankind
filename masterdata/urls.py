@@ -1,7 +1,11 @@
 from django.urls import path
 from .views import (
     import_source_data,
+    index,
     manage_masters,
+    master_entity_choose_edit,
+    master_entity_edit,
+    master_entity_merge,
     master_entity_split,
     master_entity_view,
     master_field_delete,
@@ -14,7 +18,8 @@ from .views import (
     edit_master,
     create_master,
     delete_master,
-    update_existing_source
+    update_existing_source,
+    source_view
 )
 
 urlpatterns = [
@@ -42,5 +47,13 @@ urlpatterns = [
     path('master-list/view/<int:master_entity_pk>',
          master_entity_view, name='master-entity-view'),
     path('master-list/view/<int:master_entity_pk>/split/<int:source_entity_pk>',
-         master_entity_split, name='master-entity-split')
+         master_entity_split, name='master-entity-split'),
+    path('master-list/view/<int:master_entity_pk>/edit/<int:source_entity_pk>',
+         master_entity_choose_edit, name="master-entity-choose-edit"),
+    path('master-list/view/<int:master_entity_pk>/edit/<int:source_entity_pk>/<int:master_field_pk>',
+         master_entity_edit, name='master-entity-edit'),
+    path('master-list/view/<int:master_entity_pk>/merge/<int:source_entity_pk>',
+         master_entity_merge, name='master-entity-merge'),
+    path('', index, name='masterdata-index'),
+    path('sources/view/<int:source_pk>', source_view, name='source-view')
 ]

@@ -7,6 +7,8 @@ class Source(models.Model):
         return "source_files/{}/{}".format(instance.name, filename)
 
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    reference = models.TextField(blank=True, default="")
     source_file = models.FileField(upload_to=name_based_upload)
     delimiter = models.CharField(max_length=10)
     master_created = models.BooleanField(default=False)
@@ -49,6 +51,9 @@ class MasterEntity(models.Model):
     master_key = models.CharField(max_length=255)
     hidden_key = models.IntegerField(default=None, null=True)
     source_entities = models.ManyToManyField(SourceEntity)
+
+    class Meta:
+        ordering = ['master_key']
 
 
 class MasterField(models.Model):

@@ -3,35 +3,44 @@
 
 {% block content %}
 
-  <h2>Sources</h2>
+  <div >
+    <h2 style="display: inline-block">Source List</h2>
+    <button style="float: right" onclick="hide_show()"class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
+  </div>
 
-  <form class="w3-margin" action="{% url 'source-list' %}" method="GET">
-    <label for="source-query">Select a source:</label>
-    <select name="source" id="source-query">
-      {% for source in sources %}
-        {% if selected_source == source %}
-          <option value="{{ source.id }}" selected>{{ source.name }}</option>
-        {% else %}
-          <option value="{{ source.id }}">{{ source.name }}</option>
-        {% endif %}
-      {% endfor %}
-    </select>
-    <button class="w3-btn w3-blue w3-round-large" type="submit">Get list</button>
-  </form>
+  <div id="hide_show" class="w3-margin" style="display: none;">
+    <form action="{% url 'source-list' %}" method="GET">
+      <label for="source-query">Select a source:</label>
+      <select name="source" id="source-query">
+        {% for source in sources %}
+          {% if selected_source == source %}
+            <option value="{{ source.id }}" selected>{{ source.name }}</option>
+          {% else %}
+            <option value="{{ source.id }}">{{ source.name }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <button class="w3-btn w3-blue w3-round-large" type="submit">Get list</button>
+    </form>
+  </div>
 
-  <table class="w3-margin w3-table-all w3-hoverable center">
-    <tr>
-      {% for source_field in source_fields %}
-        <th class="w3-center">{{ source_field.name }}</th>
-      {% endfor %}
-    </tr>
-    {% for entity in page_obj %}
-      <tr class="w3-center">
-        {% for data_value in source_entity_data|get_item:entity %}
-          <td class="w3-center">{{ data_value }}</td>
+  <table class="styled-table" style="width: 100%">
+    <thead>
+      <tr>
+        {% for source_field in source_fields %}
+          <th class="w3-center">{{ source_field.name }}</th>
         {% endfor %}
       </tr>
-    {% endfor %}
+    </thead>
+    <tbody>
+      {% for entity in page_obj %}
+        <tr class="w3-center">
+          {% for data_value in source_entity_data|get_item:entity %}
+            <td class="w3-center">{{ data_value }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
   </table>
 
   {% if page_obj.has_other_pages %}
@@ -60,3 +69,15 @@
 
 {% endblock content %}
 
+{% block javascript %}
+  <script>
+    function hide_show() {
+      var x = document.getElementById("hide_show");
+      if (x.style.display === "none") {
+        x.style.display = "block";
+      } else {
+        x.style.display = "none";
+      }
+    }
+  </script>
+{% endblock javascript %}

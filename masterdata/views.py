@@ -19,6 +19,41 @@ from .models import (
 )
 
 
+@remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive'])
+def index(request):
+    master_sources = get_master_sources()
+    search = request.GET.get('search', default='').strip()
+    matching = request.GET.get('matching', default='exact')
+    case_sensitive = request.GET.get('case-sensitive', default='yes')
+    master_fields = MasterField.objects.exclude(display_order=None)
+    show_table = len(MasterEntity.objects.all()) > 0
+    if search:
+        master_entities = get_master_entities(
+            request, search, matching, case_sensitive)
+    else:
+        master_entities = get_all_master_entities(request)
+    master_entity_data = get_master_entity_data(
+        master_entities, master_fields)
+    context = {
+        'selection_value': request.GET.get('source'),
+        'master_sources': master_sources,
+        'master_fields': master_fields,
+        'master_entity_data': master_entity_data,
+        'page_obj': master_entities,
+        'show_table': show_table,
+    }
+    if search:
+        context['search'] = search
+        context['matching'] = matching
+        context['case_sensitive'] = case_sensitive
+    else:
+        context['search'] = ''
+        context['matching'] = 'exact'
+        context['case_sensitive'] = 'yes'
+
+    return render(request, 'masterdata/masterdata-index.html', context)
+
+
 @login_required
 @user_passes_test(user_is_data_admin)
 def manage_masters(request):
@@ -420,8 +455,6 @@ def master_list(request):
     return render(request, 'masterdata/master_list.html', context)
 
 
-@login_required
-@user_passes_test(user_is_data_admin)
 def master_entity_view(request, master_entity_pk):
     if request.method == 'POST':
         pass
@@ -436,6 +469,79 @@ def master_entity_view(request, master_entity_pk):
                    'master_fields': master_fields,
                    'source_entities': source_entities,
                    'master_entity_data': master_entity_data})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_entity_choose_edit(request, master_entity_pk, source_entity_pk):
+    if request.method == 'POST':
+        master_field_pk = request.POST['master_field_select']
+        return redirect('master-entity-edit', master_entity_pk, source_entity_pk, master_field_pk)
+    return render(request, 'masterdata/master_entity_choose_edit.html',
+                  {'master_fields': MasterField.objects.all()})
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def master_entity_edit(request, master_entity_pk, source_entity_pk, master_field_pk):
+    master_value = MasterValue.objects.filter(master_data__master_entity__pk=master_entity_pk,
+                                              source_data__source_entity__pk=source_entity_pk,
+                                              master_field__pk=master_field_pk).first()
+    if request.method == 'POST':
+        new_value = request.POST['new_value']
+        old_value = master_value.value
+        master_value.value = new_value
+        master_value.save()
+        comment = EditComment()
+        comment.text = request.POST['comment']
+        comment.prev_value = old_value
+        comment.new_value = new_value
+        comment.master_value = master_value
+        comment.save()
+        return redirect('master-entity-view', master_entity_pk)
+
+    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
+    source_entity = SourceEntity.objects.get(pk=source_entity_pk)
+    comments = master_value.editcomment_set.all()
+    return render(request, 'masterdata/master_entity_edit.html',
+                  {'master_value': master_value,
+                   'master_entity': master_entity,
+                   'source_entity': source_entity,
+                   'comments': comments})
+
+
+def master_entity_merge(request, master_entity_pk, source_entity_pk):
+    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
+    source_entity = SourceEntity.objects.get(pk=source_entity_pk)
+    other_master_entities = MasterEntity.objects.filter(
+        master_key=master_entity.master_key).exclude(pk=master_entity.pk).distinct()
+    print(other_master_entities)
+    if request.method == 'POST':
+        new_master_entity = MasterEntity.objects.get(
+            pk=request.POST['master_entity_select'])
+        for data in source_entity.sourcedata_set.all():
+            data.masterdata_set.clear()
+        for master_field in MasterField.objects.all():
+            master_value = MasterValue.objects.filter(
+                master_data__master_entity=master_entity,
+                source_data__source_entity=source_entity,
+                master_field=master_field).first()
+            new_master_data = MasterData.objects.filter(
+                master_field=master_field, master_entity=new_master_entity).first()
+            for data in master_value.source_data.all():
+                new_master_data.source_data.add(data)
+            master_value.master_data = new_master_data
+            master_value.save()
+
+        source_entity.masterentity_set.clear()
+        new_master_entity.source_entities.add(source_entity)
+        if len(MasterValue.objects.filter(master_data__master_entity=master_entity)) == 0:
+            master_entity.delete()
+        return redirect('master-list')
+    return render(request, 'masterdata/master_entity_merge.html',
+                  {'master_entity': master_entity,
+                   'source_entity': source_entity,
+                   'other_master_entities': other_master_entities})
 
 
 @login_required
@@ -460,7 +566,6 @@ def master_entity_split(request, master_entity_pk, source_entity_pk):
                 master_data__master_entity=master_entity,
                 source_data__source_entity=source_entity,
                 master_field=master_field).first()
-            print(master_value)
             master_data = MasterData()
             master_data.master_entity = new_master_entity
             master_data.master_field = master_field
@@ -522,3 +627,9 @@ def save_new_source_data(request, source_pk):
     return render(request, 'masterdata/save_new_source_data.html',
                   {'source': source,
                    'source_fields': source_fields})
+
+
+def source_view(request, source_pk):
+    source = Source.objects.get(pk=source_pk)
+    return render(request, 'masterdata/source_view.html',
+                  {'source': source})

@@ -10,9 +10,12 @@ class SourceDataImportForm(forms.ModelForm):
 
     class Meta:
         model = Source
-        fields = ['name', 'source_file', 'delimiter']
+        fields = ['name', 'description',
+                  'reference', 'source_file', 'delimiter']
         labels = {
             'name': "Source name",
+            'description': "Description",
+            'reference': "Reference",
             'source_file': "Upload a CSV file containing source data",
             'delimiter': "CSV delimiter",
         }
