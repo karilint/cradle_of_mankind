@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    export_to_csv,
     import_source_data,
     index,
     manage_masters,
@@ -55,5 +56,6 @@ urlpatterns = [
     path('master-list/view/<int:master_entity_pk>/merge/<int:source_entity_pk>',
          master_entity_merge, name='master-entity-merge'),
     path('', index, name='masterdata-index'),
-    path('sources/view/<int:source_pk>', source_view, name='source-view')
+    path('sources/view/<int:source_pk>', source_view, name='source-view'),
+    path('export', export_to_csv, name='export')
 ]

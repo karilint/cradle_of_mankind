@@ -9,7 +9,8 @@
     <div>
       <img style="height: 60px; padding-right: 10px; padding-bottom: 10px;" src="{% static 'images/example.jpeg' %}" alt="Example image">
       <h2 style="display: inline-block">Welcome to the Cradle of Humanity &mdash; The fossil collection data at the NMK</h2>
-      <button style="float: right" onclick="hide_show()"class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
+      <a href="{% url 'export' %}?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}" style="float: right" class="w3-btn w3-green w3-round">Export <i class="fa fa-file-text"></i></a>
+      <button style="float: right; margin-right: 10px;" onclick="hide_show()"class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
     </div>
 
     <form id="hide_show" class="w3-margin" action="{% url 'masterdata-index' %}" method="GET" style="display: none;">
@@ -99,21 +100,21 @@
 
       <div class="w3-bar w3-center">
         {% if page_obj.has_previous %}
-          <a class="w3-button" href="?source={{ selection_value }}&page=1">First</a>
-          <a class="w3-button" href="?source={{ selection_value }}&page={{ page_obj.previous_page_number }}">Previous</a>
+          <a class="w3-button" href="?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}&page=1">First</a>
+          <a class="w3-button" href="?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}&page={{page_obj.previous_page_number}}">Previous</a>
         {% endif %}
 
         {% for num in page_obj.paginator.page_range %}
           {% if page_obj.number == num %}
-            <a class="w3-button w3-dark-grey w3-margin" href="?source={{ selection_value }}&page={{ num }}">{{ num }}</a>
+            <a class="w3-button w3-dark-grey w3-margin" href="?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}&page={{ num }}">{{ num }}</a>
           {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3'%}
-            <a class="w3-button" href="?source={{ selection_value }}&page={{ num }}">{{ num }}</a>
+            <a class="w3-button" href="?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}&page={{ num }}">{{ num }}</a>
           {% endif %}
         {% endfor%}
 
         {% if page_obj.has_next %}
-          <a class="w3-button" href="?source={{ selection_value }}&page={{ page_obj.next_page_number }}">Next</a>
-          <a class="w3-button" href="?source={{ selection_value }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+          <a class="w3-button" href="?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}&page={{page_obj.next_page_number}}">Next</a>
+          <a class="w3-button" href="?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}&page={{page_obj.paginator.num_pages}}">Last</a>
         {% endif %}
       </div>
 

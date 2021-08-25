@@ -1,3 +1,5 @@
+from masterdata.templatetags.my_filters import to_string
+from django.db import transaction
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.contrib import messages
 from cradle_of_mankind import settings
@@ -220,6 +222,15 @@ def set_source_key_for_source_entity(source_entity):
     source_entity.save()
 
 
+def get_source_key(source, row):
+    """Gets source_key for source_entity from csv row"""
+    key_fields = source.sourcefield_set.filter(is_primary_key=True)
+    key_field_values = []
+    for field in key_fields:
+        key_field_values.append(row[field.name])
+    return '-'.join(key_field_values)
+
+
 def create_examples(source):
     examples = {}
     for field in source.sourcefield_set.all():
@@ -362,8 +373,8 @@ def get_source_entities(request, source):
     return page_entities
 
 
-def get_all_master_entities(request):
-    master_entities = MasterEntity.objects.all()
+def get_master_entities_page(request, search, matching, case_sensitive):
+    master_entities = get_master_entities(search, matching, case_sensitive)
     page = request.GET.get('page', 1)
     paginator = Paginator(master_entities, 15)
     try:
@@ -375,7 +386,9 @@ def get_all_master_entities(request):
     return page_entities
 
 
-def get_master_entities(request, search, matching, case_sensitive):
+def get_master_entities(search, matching, case_sensitive):
+    if not search:
+        return MasterEntity.objects.all()
     if case_sensitive == 'yes':
         if matching == 'exact':
             master_entities = MasterEntity.objects.filter(
@@ -402,15 +415,7 @@ def get_master_entities(request, search, matching, case_sensitive):
         elif matching == 'endswith':
             master_entities = MasterEntity.objects.filter(
                 masterdata__mastervalue__value__iendswith=search).distinct()
-    page = request.GET.get('page', 1)
-    paginator = Paginator(master_entities, 15)
-    try:
-        page_entities = paginator.page(page)
-    except PageNotAnInteger:
-        page_entities = paginator.page(1)
-    except EmptyPage:
-        page_entities = paginator.page(paginator.num_pages)
-    return page_entities
+    return master_entities
 
 
 def save_source_fields(source):
@@ -431,7 +436,7 @@ def save_source_fields(source):
                 source_field.save()
 
 
-def save_data(source):
+def save_data_old(source):
     delimiter = source.delimiter
     with open(source.source_file.path, encoding='utf8') as f:
         data = DictReader(f)
@@ -464,6 +469,87 @@ def save_data(source):
                 source_value.save()
 
             set_source_key_for_source_entity(source_entity)
+
+
+@transaction.atomic
+def save_data(source):
+    delimiter = source.delimiter
+    with open(source.source_file.path, encoding='utf8') as f:
+        data = DictReader(f)
+        rows = 0
+        for row in data:
+            rows += 1
+        f.seek(0)
+        data = DictReader(f, delimiter=delimiter)
+        print(f"Processing... ({rows} rows)")
+        source_fields = {}
+        for field in source.sourcefield_set.all():
+            source_fields[field.name] = field
+        source_entity_objs = []
+        source_data_objs = []
+        source_value_objs = []
+        print("Creating source entities...")
+        for index, row in enumerate(data):
+            print_progress(index+1, rows)
+            source_entity = SourceEntity()
+            source_entity.source_key = get_source_key(source, row)
+            source_entity.source = source
+            source_entity_objs.append(source_entity)
+        print('Saving to database...')
+        source_entities = SourceEntity.objects.bulk_create(source_entity_objs)
+
+        f.seek(0)
+        data = DictReader(f, delimiter=delimiter)
+        print("Creating source data...")
+        for index, row in enumerate(data):
+            print_progress(index+1, rows)
+            source_entity = source_entities[index]
+            for field in row.keys():
+                source_field = source_fields[field]
+                source_data = SourceData()
+                source_data.source_entity = source_entity
+                source_data.source_field = source_field
+                source_data_objs.append(source_data)
+        print('Saving to database...')
+        SourceData.objects.bulk_create(source_data_objs)
+
+        source_datas = {}
+        for source_data in list(SourceData.objects.filter(source_entity__source=source).distinct()):
+            inner_dict = source_datas.setdefault(
+                source_data.source_entity_id, {})
+            inner_dict[source_data.source_field_id] = source_data
+        f.seek(0)
+        data = DictReader(f, delimiter=delimiter)
+        print("Creating source values...")
+        for index, row in enumerate(data):
+            print_progress(index+1, rows)
+            source_entity = source_entities[index]
+            for field in row.keys():
+                source_field = source_fields[field]
+                source_data = source_datas[source_entity.id][source_field.id]
+                source_value = SourceValue()
+                source_value.value = row[field]
+                source_value.source_field = source_field
+                source_value.source_data = source_data
+                source_value_objs.append(source_value)
+        print("Saving to database...")
+        SourceValue.objects.bulk_create(source_value_objs)
+        print("Done.")
+
+
+def get_rows(search, matching, case_sensitive):
+    rows = []
+    master_fields = MasterField.objects.exclude(display_order=None)
+    master_entities = get_master_entities(search, matching, case_sensitive)
+    rows.append(master_fields.values_list('name', flat=True))
+    for master_entity in master_entities:
+        row = []
+        for master_field in master_fields:
+            master_data = MasterData.objects.filter(
+                master_entity=master_entity, master_field=master_field).first()
+            row.append(to_string(master_data))
+        rows.append(row)
+    return rows
 
 
 def print_progress(index, rows):

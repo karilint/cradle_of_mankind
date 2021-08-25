@@ -1,7 +1,9 @@
 import json
 import re
+import csv
 from cradle_of_mankind.decorators import remember_last_query_params
 from django.contrib import messages
+from django.http import HttpResponse, StreamingHttpResponse
 from users.views import user_is_data_admin
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
@@ -27,11 +29,8 @@ def index(request):
     case_sensitive = request.GET.get('case-sensitive', default='yes')
     master_fields = MasterField.objects.exclude(display_order=None)
     show_table = len(MasterEntity.objects.all()) > 0
-    if search:
-        master_entities = get_master_entities(
-            request, search, matching, case_sensitive)
-    else:
-        master_entities = get_all_master_entities(request)
+    master_entities = get_master_entities_page(
+        request, search, matching, case_sensitive)
     master_entity_data = get_master_entity_data(
         master_entities, master_fields)
     context = {
@@ -429,11 +428,8 @@ def master_list(request):
     matching = request.GET.get('matching', default='exact')
     case_sensitive = request.GET.get('case-sensitive', default='yes')
     master_fields = MasterField.objects.exclude(display_order=None)
-    if search:
-        master_entities = get_master_entities(
-            request, search, matching, case_sensitive)
-    else:
-        master_entities = get_all_master_entities(request)
+    master_entities = get_master_entities_page(
+        request, search, matching, case_sensitive)
     master_entity_data = get_master_entity_data(
         master_entities, master_fields)
     context = {
@@ -633,3 +629,31 @@ def source_view(request, source_pk):
     source = Source.objects.get(pk=source_pk)
     return render(request, 'masterdata/source_view.html',
                   {'source': source})
+
+
+class Echo:
+    """An object that implements just the write method of the file-like
+    interface.
+
+    https://docs.djangoproject.com/en/3.1/howto/outputting-csv/
+    """
+
+    def write(self, value):
+        """Write the value by returning it, instead of storing in a buffer."""
+        return value
+
+
+def export_to_csv(request):
+    """A view that streams a large CSV file."""
+
+    search = request.GET.get('search', default='').strip()
+    matching = request.GET.get('matching', default='exact')
+    case_sensitive = request.GET.get('case-sensitive', default='yes')
+
+    rows = get_rows(search, matching, case_sensitive)
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
+    response = StreamingHttpResponse((writer.writerow(row) for row in rows),
+                                     content_type="text/csv")
+    response['Content-Disposition'] = 'attachment; filename="masterdata.csv"'
+    return response
