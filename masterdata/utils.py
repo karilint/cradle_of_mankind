@@ -496,7 +496,7 @@ def save_data(source):
             source_entity.source = source
             source_entity_objs.append(source_entity)
         print('Saving to database...')
-        source_entities = SourceEntity.objects.bulk_create(source_entity_objs)
+        source_entities = SourceEntity.objects.bulk_create(source_entity_objs, batch_size=5000)
 
         f.seek(0)
         data = DictReader(f, delimiter=delimiter)
@@ -511,7 +511,7 @@ def save_data(source):
                 source_data.source_field = source_field
                 source_data_objs.append(source_data)
         print('Saving to database...')
-        SourceData.objects.bulk_create(source_data_objs)
+        SourceData.objects.bulk_create(source_data_objs, batch_size=5000)
 
         source_datas = {}
         for source_data in list(SourceData.objects.filter(source_entity__source=source).distinct()):
@@ -533,7 +533,7 @@ def save_data(source):
                 source_value.source_data = source_data
                 source_value_objs.append(source_value)
         print("Saving to database...")
-        SourceValue.objects.bulk_create(source_value_objs)
+        SourceValue.objects.bulk_create(source_value_objs, batch_size=5000)
         print("Done.")
 
 
