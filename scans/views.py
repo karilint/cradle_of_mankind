@@ -1,3 +1,4 @@
+from django.db import transaction
 from cradle_of_mankind.decorators import remember_last_query_params
 from users.views import user_is_data_admin
 from json import load
@@ -106,23 +107,27 @@ def import_scans(request):
     return render(request, 'scans/scan_import.html', {'form': form})
 
 
+@transaction.atomic
 def save_json_to_database(json_file, user):
     data = load(json_file)
     data = data['rows']
-    for scan in data:
-        try:
-            s = Scan.objects.get(id=scan['id'])
-        except ObjectDoesNotExist:
-            s = Scan()
-            s.id = scan['id']
-            s.type = scan['card_type']
-            s.status = scan['STG_STATUS']
-            s.image = f"scans/{s.id}.jpg"
-            if not scan['txt']:
-                s.text = ''
+    existing_ids = set(Scan.objects.all().values_list('id', flat=True))
+    new_scans = []
+    for obj in data:
+        if obj['id'] in existing_ids:
+            continue
+        else:
+            scan = Scan()
+            scan.id = obj['id']
+            scan.type = obj['card_type']
+            scan.status = obj['STG_STATUS']
+            scan.image = f"scans/{scan.id}.jpg"
+            if not obj['txt']:
+                scan.text = ''
             else:
-                s.text = scan['txt']
-            s.created_by = user
-            s.modified_by = user
-            s.save()
-        print(f"Scan (id: {s.id}) saved")
+                scan.text = obj['txt']
+            scan.created_by = user
+            scan.modified_by = user
+            new_scans.append(scan)
+            print(f"Scan (id: {scan.id}) created")
+    Scan.objects.bulk_create(new_scans)
