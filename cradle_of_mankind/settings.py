@@ -98,6 +98,11 @@ SOCIALACCOUNT_PROVIDERS = {
     'orcid': {
         'BASE_DOMAIN': 'orcid.org',
         'MEMBER_API': False,
+        'APP': {
+            'client_id': config.get('ORCID_CLIENT_ID'),
+            'secret': config.get('ORCID_SECRET'),
+            'key': '',
+        }
     }
 }
 

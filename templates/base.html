@@ -99,7 +99,7 @@
     <div class="w3-container">
       {% if messages %}
         {% for message in messages %}
-          <div class="alert w3-round {{message.tags}}">
+          <div class="alert w3-round w3-margin-bottom {{message.tags}}">
             <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
             <strong>{{message.tags|title}}! </strong>{{message}}
           </div>
