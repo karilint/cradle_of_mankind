@@ -127,7 +127,12 @@ def create_master(request, source_pk, stage):
         if request.method == 'POST':
             master_rules = json.loads(source.masterdata_rules)
             master_fields = MasterField.objects.all()
+            x=1
             for source_entity in source.sourceentity_set.all():
+                print(x)
+                if x==441:
+                    print(x)
+                x+=1
                 master_key = get_master_key_for_source_entity(
                     source_entity, master_rules)
                 try:
