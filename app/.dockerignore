@@ -1,0 +1,13 @@
+Dockerfile*
+docker-compose*
+.dockerignore
+.git
+.gitignore
+README.md
+.vscode
+.env*
+database.cnf
+config.json
+media/
+static/
+.venv

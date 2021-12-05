@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./app
+    ports:
+      - 8000:8000
+    volumes:
+      - ./app:/src/app
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+    container_name: coh_web
+
+  db:
+    image: mariadb
+    restart: always
+    ports:
+      - 3306
+    environment:
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    command:
+      - "--character-set-server=utf8mb4"
+    volumes:
+      - db:/var/lib/mysql
+    container_name: coh_db
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8001:80
+    environment:
+      - PMA_HOST=${DB_HOST}
+      - PMA_USER=${DB_USER}
+      - PMA_PASSWORD=${DB_PASSWORD}
+    container_name: coh_phpmyadmin
+
+volumes:
+  db: null

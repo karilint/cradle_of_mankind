@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+
+  web:
+    image: palaeontologyhelsinki/cradle_of_humanity
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    command: sh -c ./scripts/entrypoint.prod.sh
+    volumes:
+      - static:/vol/web
+    env_file:
+      - ./.env
+    container_name: coh_web_prod
+
+  nginx:
+    build: ./nginx
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - static:/vol/web
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+      - PMA_DOMAIN=${PMA_DOMAIN}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    depends_on:
+      - web
+    container_name: coh_nginx_prod
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8001:80
+    environment:
+      - PMA_HOST=${DB_HOST}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    container_name: coh_phpmyadmin_prod
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30
+    container_name: coh_watchtower
+
+volumes:
+  static: null

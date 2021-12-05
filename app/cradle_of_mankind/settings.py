@@ -18,19 +18,27 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-with open(os.path.join(BASE_DIR, 'config.json')) as config_file:
-    config = json.load(config_file)
+try:
+    with open(os.path.join(BASE_DIR, 'config.json')) as config_file:
+        config = json.load(config_file)
+except IOError:
+    config = {}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config.get('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'development_key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config.get('DEBUG')
+DEBUG = bool(int(os.environ.get('DEBUG', 1)))
 
 ALLOWED_HOSTS = config.get('ALLOWED_HOSTS')
+ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS.extend(ALLOWED_HOSTS_ENV.split(','))
+else:
+    ALLOWED_HOSTS.append('*')
 
 # Application definition
 
@@ -99,8 +107,8 @@ SOCIALACCOUNT_PROVIDERS = {
         'BASE_DOMAIN': 'orcid.org',
         'MEMBER_API': False,
         'APP': {
-            'client_id': config.get('ORCID_CLIENT_ID'),
-            'secret': config.get('ORCID_SECRET'),
+            'client_id': os.environ.get('ORCID_CLIENT_ID', config.get('ORCID_CLIENT_ID', '')),
+            'secret': os.environ.get('ORCID_SECRET', config.get('ORCID_SECRET', '')),
             'key': '',
         }
     }
@@ -121,10 +129,10 @@ WSGI_APPLICATION = 'cradle_of_mankind.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': config.get('DB_HOST'),
-        'NAME': config.get('DB_NAME'),
-        'USER': config.get('DB_USER'),
-        'PASSWORD': config.get('DB_PASS'),
+        'HOST': os.environ.get('DB_HOST', config.get('DB_HOST')),
+        'NAME': os.environ.get('DB_NAME', config.get('DB_NAME')),
+        'USER': os.environ.get('DB_USER', config.get('DB_USER')),
+        'PASSWORD': os.environ.get('DB_PASSWORD', config.get('DB_PASS')),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
@@ -171,20 +179,21 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.environ.get('STATIC_ROOT', os.path.join(BASE_DIR, 'static'))
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'templates_static')]
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
 MEDIA_URL = '/media/'
 
 LOGIN_REDIRECT_URL = 'index'
 
 LOGIN_URL = 'account_login'
 
-EMAIL_BACKEND = config.get('EMAIL_BACKEND')
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', config.get(
+    'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'))
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config.get('EMAIL_USER')
-EMAIL_HOST_PASSWORD = config.get('EMAIL_PASS')
+EMAIL_HOST_USER = os.environ.get('EMAIL_USER', config.get('EMAIL_USER'))
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS', config.get('EMAIL_PASS'))
