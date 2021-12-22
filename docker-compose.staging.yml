@@ -3,7 +3,7 @@ version: '3.8'
 services:
 
   web:
-    image: palaeontologyhelsinki/cradle_of_humanity_staging
+    image: palaeontologyhelsinki/cradle_of_humankind_staging
     restart: unless-stopped
     ports:
       - 8000:8000
