@@ -10,7 +10,8 @@
       <img style="height: 60px; padding-right: 10px; padding-bottom: 10px;" src="{% static 'images/example.jpeg' %}" alt="Example image">
       <h2 style="display: inline-block">Welcome to the Cradle of Humanity &mdash; The fossil collection data at the NMK</h2>
       <a href="{% url 'export' %}?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}" style="float: right" class="w3-btn w3-green w3-round">Export <i class="fa fa-file-text"></i></a>
-      <button style="float: right; margin-right: 10px;" onclick="hide_show()"class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
+      <button style="float: right; margin-right: 10px;" onclick="hide_show()" class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
+      <button style="float: right; margin-right: 10px;" class="w3-btn w3-green w3-round" type="button" id="clear-button2">Clear</button>
     </div>
 
     <form id="hide_show" class="w3-margin" action="{% url 'masterdata-index' %}" method="GET" style="display: none;">
@@ -64,14 +65,19 @@
           </select>
         </div>
       </div>
-      <button class="w3-btn w3-blue w3-round-large" type="submit">Filter</button>
+      <button class="w3-btn w3-blue w3-round-large" type="submit" id="filter-button">Filter</button>
+      <button class="w3-btn w3-blue w3-round-large" type="button" id="clear-button">Clear</button>
     </form>
 
     <table class="styled-table" style="width: 100%">
       <thead>
         <tr>
           {% for source_field in master_fields %}
-            <th class="w3-center">{{ source_field.name }}</th>
+            {% if source_field.abbreviation %}
+              <th class="w3-center">{{ source_field.abbreviation }}</th>
+            {% else %}
+              <th class="w3-center">{{ source_field.name }}</th>
+            {% endif %}
           {% endfor %}
         </tr>
       </thead>
@@ -141,14 +147,7 @@
 {% endblock content%}
 
 {% block javascript %}
-  <script>
-    function hide_show() {
-      var x = document.getElementById("hide_show");
-      if (x.style.display === "none") {
-        x.style.display = "block";
-      } else {
-        x.style.display = "none";
-      }
-    }
-  </script>
+
+  <script type="text/javascript" src="{% static 'masterdata/masterlist.js' %}"></script>
+
 {% endblock javascript %}

@@ -1,5 +1,5 @@
 import os
-from django.contrib.auth.models import User
+from users.models import User
 from allauth.account.models import EmailAddress
 from django.contrib.sites.models import Site
 
@@ -15,7 +15,9 @@ if not User.objects.filter(username=username).exists():
     print(f'Password: {password}')
     print(f'Email: {email}')
     user = User.objects.create_user(username, email, password,
-                                    is_superuser=1, is_staff=1)
+                                    is_superuser=1, is_staff=1,
+                                    is_data_admin=1, is_editor=1,
+                                    receive_contact_email=1)
     EmailAddress.objects.create(
         user=user, email=user.email, verified=1, primary=1)
 else:

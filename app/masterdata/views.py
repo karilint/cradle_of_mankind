@@ -127,12 +127,12 @@ def create_master(request, source_pk, stage):
         if request.method == 'POST':
             master_rules = json.loads(source.masterdata_rules)
             master_fields = MasterField.objects.all()
-            x=1
+            x = 1
             for source_entity in source.sourceentity_set.all():
                 print(x)
-                if x==441:
+                if x == 441:
                     print(x)
-                x+=1
+                x += 1
                 master_key = get_master_key_for_source_entity(
                     source_entity, master_rules)
                 try:
@@ -325,7 +325,7 @@ def master_fields(request):
         else:
             messages.error(
                 request, "Cannot add that field. Did you try to add a field that already exists?")
-    master_fields = MasterField.objects.all().order_by('name')
+    master_fields = MasterField.objects.all()
     form = MasterFieldForm()
     return render(request, 'masterdata/master_fields.html',
                   {'master_fields': master_fields,

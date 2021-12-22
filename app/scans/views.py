@@ -1,8 +1,11 @@
+import os
 from django.db import transaction
 from cradle_of_mankind.decorators import remember_last_query_params
 from users.views import user_is_data_admin
 from json import load
 from django.contrib import messages
+
+from cradle_of_mankind.settings import MEDIA_ROOT
 
 from django.db.models.query_utils import Q
 from django.shortcuts import redirect, render
@@ -20,6 +23,22 @@ from django.views.generic import (
     DetailView,
     UpdateView,
 )
+
+
+@login_required
+@user_passes_test(user_is_data_admin)
+def import_scan_images(request):
+    if request.method == 'POST':
+        images = request.FILES.getlist('images')
+        scans_path = os.path.join(MEDIA_ROOT, 'scans')
+        for image in images:
+            destination = open(os.path.join(scans_path, image.name), 'wb+') 
+            for chunk in image.chunks():
+                destination.write(chunk)
+            destination.close()
+        messages.success(request, "Images uploaded succesfully")
+        return redirect('scan-list')
+    return render(request, 'scans/import_scan_images.html')
 
 
 class ScanListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
@@ -74,6 +93,20 @@ class ScanSearchView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 class ScanDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Scan
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        scan = context['scan']
+        image_exists = True
+        try:
+            with open(scan.image.path, 'r') as img:
+                print('image found')
+        except FileNotFoundError as e:
+            image_exists = False
+            print('image not found')
+
+        context['image_exists'] = image_exists
+        return context
 
     def test_func(self):
         user = self.request.user

@@ -58,6 +58,7 @@ class MasterEntity(models.Model):
 
 class MasterField(models.Model):
     name = models.CharField(max_length=255, unique=True)
+    abbreviation = models.CharField(max_length=255, blank=True, default='')
     primary_key = models.BooleanField(default=False)
     display_order = models.IntegerField(null=True, default=None)
     description = models.TextField(blank=True)

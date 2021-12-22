@@ -4,6 +4,7 @@ from scans.views import (
     ScanSearchView,
     ScanDetailView,
     ScanEditView,
+    import_scan_images,
     import_scans,
 )
 
@@ -16,4 +17,5 @@ urlpatterns = [
          ScanEditView.as_view(template_name="scans/scan_edit.html"),
          name='scan-edit'),
     path('import/', import_scans, name='scan-import'),
+    path('import-images/', import_scan_images, name='import-scan-images'),
 ]

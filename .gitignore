@@ -7,7 +7,6 @@ nginx/certs/dhparam.pem
 database.cnf
 config.json
 media/
-static/
 github_kli*
 
 # Byte-compiled / optimized / DLL files

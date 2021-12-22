@@ -1,12 +1,15 @@
 {% extends "base.html" %}
+{% load static %} 
 
 {% block content %}
 
 <div class="flex-container">
-  {% if scan.image %}
+  {% if image_exists %}
     <a class="w3-margin scan-image" href="{{ scan.image.url }}" style="max-width: {{ scan.image.width }}px">
       <img src="{{ scan.image.url }}">
     </a>
+  {% else %}
+    <img src="{% static 'scans/blank.jpg' %}">
   {% endif %}
   <div class="scan-table w3-margin">
     <table class="w3-table-all w3-hoverable w3-margin detail-table">
