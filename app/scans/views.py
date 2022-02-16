@@ -32,7 +32,7 @@ def import_scan_images(request):
         images = request.FILES.getlist('images')
         scans_path = os.path.join(MEDIA_ROOT, 'scans')
         for image in images:
-            destination = open(os.path.join(scans_path, image.name), 'wb+') 
+            destination = open(os.path.join(scans_path, image.name), 'wb+')
             for chunk in image.chunks():
                 destination.write(chunk)
             destination.close()

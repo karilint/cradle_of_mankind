@@ -5,6 +5,7 @@ services:
     build: ./app
     ports:
       - 8000:8000
+      - 3000:3000
     volumes:
       - ./app:/src/app
     env_file:
