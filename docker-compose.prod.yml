@@ -38,6 +38,8 @@ services:
       - 8001:80
     environment:
       - PMA_HOST=${DB_HOST}
+      - UPLOAD_LIMIT=${PMA_UPLOAD_LIMIT}
+      - MEMORY_LIMIT=${PMA_MEMORY_LIMIT}
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     container_name: coh_phpmyadmin_prod
