@@ -16,6 +16,10 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 @remember_last_query_params('quality-control-list', ['page', 'workflow', 'status'])
 def quality_control_list(request):
     workflows = Workflow.objects.all()
+    if not workflows:
+        messages.info(request,
+                      "There are no workflows in quality control. First import data from Zooniverse")
+        return redirect('import-data')
     if request.GET.get('workflow'):
         workflow = Workflow.objects.get(pk=request.GET.get('workflow'))
     else:
@@ -88,6 +92,10 @@ def quality_control_check(request, workflow_pk, scan_pk):
 @remember_last_query_params('summary-list', ['page'])
 def summary_list(request):
     workflows = Workflow.objects.all()
+    if not workflows:
+        messages.info(request,
+                      "There are no workflows in quality control. First import data from Zooniverse")
+        return redirect('import-data')
     scans = get_scans(request)
     statuses = {}
     for scan in scans:
