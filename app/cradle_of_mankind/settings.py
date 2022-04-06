@@ -24,24 +24,34 @@ try:
 except IOError:
     config = {}
 
+
+def get_var(name, default_value=None):
+    """
+    The function first searches for a environmental variable called by the
+    name. Then, if not found, it searches for the value from config.json file.
+    If the variable is not found on either place, then it returns default_value.
+    """
+    return os.environ.get(name, config.get(name, default_value))
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'development_key')
+SECRET_KEY = get_var('SECRET_KEY', 'development_key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(int(os.environ.get('DEBUG', 1)))
+DEBUG = bool(int(get_var('DEBUG', 1)))
 
-ALLOWED_HOSTS = config.get('ALLOWED_HOSTS', [])
-ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS')
+ALLOWED_HOSTS = []
+ALLOWED_HOSTS_ENV = get_var('ALLOWED_HOSTS', None)
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS.extend(ALLOWED_HOSTS_ENV.split(','))
 else:
     ALLOWED_HOSTS.append('*')
 
 CSRF_TRUSTED_ORIGINS = []
-TRUSTED_ORIGINS_ENV = os.environ.get('TRUSTED_ORIGINS')
+TRUSTED_ORIGINS_ENV = os.environ.get('TRUSTED_ORIGINS', None)
 if TRUSTED_ORIGINS_ENV:
     CSRF_TRUSTED_ORIGINS.extend(TRUSTED_ORIGINS_ENV.split(','))
 
@@ -112,8 +122,8 @@ SOCIALACCOUNT_PROVIDERS = {
         'BASE_DOMAIN': 'orcid.org',
         'MEMBER_API': False,
         'APP': {
-            'client_id': os.environ.get('ORCID_CLIENT_ID', config.get('ORCID_CLIENT_ID', '')),
-            'secret': os.environ.get('ORCID_SECRET', config.get('ORCID_SECRET', '')),
+            'client_id': get_var('ORCID_CLIENT_ID', ''),
+            'secret': get_var('ORCID_SECRET', ''),
             'key': '',
         }
     }
@@ -134,10 +144,10 @@ WSGI_APPLICATION = 'cradle_of_mankind.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': os.environ.get('DB_HOST', config.get('DB_HOST')),
-        'NAME': os.environ.get('DB_NAME', config.get('DB_NAME')),
-        'USER': os.environ.get('DB_USER', config.get('DB_USER')),
-        'PASSWORD': os.environ.get('DB_PASSWORD', config.get('DB_PASS')),
+        'HOST': get_var('DB_HOST'),
+        'NAME': get_var('DB_NAME'),
+        'USER': get_var('DB_USER'),
+        'PASSWORD': get_var('DB_PASSWORD'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
@@ -184,23 +194,89 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_ROOT = os.environ.get('STATIC_ROOT', os.path.join(BASE_DIR, 'static'))
+STATIC_ROOT = get_var('STATIC_ROOT', os.path.join(BASE_DIR, 'static'))
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'templates_static')]
 
-MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
+MEDIA_ROOT = get_var('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
 MEDIA_URL = '/media/'
 
 LOGIN_REDIRECT_URL = 'index'
 
 LOGIN_URL = 'account_login'
 
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', config.get(
-    'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'))
+EMAIL_BACKEND = get_var(
+    'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_USER', config.get('EMAIL_USER'))
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS', config.get('EMAIL_PASS'))
+EMAIL_HOST_USER = get_var('EMAIL_USER')
+EMAIL_HOST_PASSWORD = get_var('EMAIL_PASS')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'formatters': {
+        'my_formatter': {
+            'format': '[{asctime}] {levelname} {threadName} {processName} {pathname}:{lineno} {name} {funcName} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'class': 'django.utils.log.AdminEmailHandler',
+            'include_html': True,
+        },
+        'console': {
+            'level': get_var('CONSOLE_LOG_LEVEL', 'INFO'),
+            'class': 'logging.StreamHandler',
+            'formatter': 'my_formatter',
+        },
+        'info_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'info.log'),
+            'mode': 'a',
+            'encoding': 'utf-8',
+            'formatter': 'my_formatter',
+            'backupCount': 5,
+            'maxBytes': 10485760,
+        },
+        'debug_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'debug.log'),
+            'mode': 'a',
+            'encoding': 'utf-8',
+            'formatter': 'my_formatter',
+            'backupCount': 5,
+            'maxBytes': 10485760,
+        },
+    },
+    'loggers': {
+        '': {
+            'level': get_var('ROOT_LOG_LEVEL', 'DEBUG'),
+            'handlers': ['console', 'mail_admins', 'info_file', 'debug_file', ],
+        },
+        'django': {
+            'level': get_var('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'handlers': ['console', 'mail_admins', 'info_file', 'debug_file', ],
+            'propagate': False,
+        },
+        'django.server': {
+            'propagate': False,
+        }
+    },
+}

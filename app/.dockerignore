@@ -11,3 +11,5 @@ config.json
 media/
 static/
 .venv
+logs/*
+!logs/.keep

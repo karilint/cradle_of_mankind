@@ -3,6 +3,8 @@ database.cnf
 config.json
 media/
 github_kli*
+logs/*
+!logs/.keep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

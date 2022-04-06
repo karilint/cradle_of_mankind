@@ -9,6 +9,7 @@ services:
       - 8000:8000
     command: sh -c ./scripts/entrypoint.prod.sh
     volumes:
+      - ./app/logs:/src/app/logs
       - static:/vol/web
     env_file:
       - ./.env
