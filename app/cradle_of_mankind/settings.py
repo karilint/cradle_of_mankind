@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'main.apps.MainConfig',
     'users.apps.UsersConfig',
     'scans.apps.ScansConfig',
     'zooniverse.apps.ZooniverseConfig',
