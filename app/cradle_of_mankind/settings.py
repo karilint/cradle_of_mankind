@@ -100,7 +100,7 @@ ROOT_URLCONF = 'cradle_of_mankind.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, "templates")],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -197,7 +197,6 @@ USE_TZ = True
 
 STATIC_ROOT = get_var('STATIC_ROOT', os.path.join(BASE_DIR, 'static'))
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'templates_static')]
 
 MEDIA_ROOT = get_var('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
 MEDIA_URL = '/media/'
