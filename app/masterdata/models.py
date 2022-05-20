@@ -6,7 +6,7 @@ class Source(models.Model):
     def name_based_upload(instance, filename):
         return "source_files/{}/{}".format(instance.name, filename)
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default="")
     reference = models.TextField(blank=True, default="")
     source_file = models.FileField(upload_to=name_based_upload)
@@ -29,6 +29,7 @@ class SourceField(models.Model):
     is_divided = models.BooleanField(default=False)
     delimiters = models.CharField(max_length=255, blank=True, default='')
     num_of_parts = models.IntegerField(default=1)
+    num_of_mappings = models.IntegerField(default=1)
 
     class Meta:
         ordering = ["display_order"]

@@ -20,24 +20,37 @@ from .models import (
     MasterField
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def stage1_post(request, source, source_fields, stage):
     changed_source_fields = []
     for source_field in source_fields:
+        source_field_changed = False
         if request.POST.get(source_field.name) == 'True':
             if not source_field.is_divided:
                 source_field.is_divided = True
-                changed_source_fields.append(source_field)
+                source_field_changed = True
         else:
             if source_field.is_divided:
                 source_field.is_divided = False
                 source_field.delimiters = ''
                 source_field.num_of_parts = 1
-                changed_source_fields.append(source_field)
-        source_field.save()
-    source.masterdata_stage = stage
+                source_field_changed = True
+        prev_num_of_mappings = source_field.num_of_mappings
+        source_field.num_of_mappings = request.POST.get(
+            source_field.name + '_num_of_mappings')
+        if prev_num_of_mappings != source_field.num_of_mappings:
+            source_field_changed = True
+        if source_field_changed:
+            changed_source_fields.append(source_field)
     if changed_source_fields:
+        SourceField.objects.bulk_update(changed_source_fields, [
+            'is_divided', 'delimiters', 'num_of_parts', 'num_of_mappings'])
         update_masterdata_rules(request, source, changed_source_fields)
+    source.masterdata_stage = stage
     source.save()
 
 
@@ -61,30 +74,32 @@ def stage2_post(request, source, source_fields, stage):
 
 def stage3_post(request, source, source_fields, masterdata_rules, stage):
     for source_field in source_fields:
-        if source_field.is_divided:
-            for i in range(1, source_field.num_of_parts+1):
+        for num in range(1, source_field.num_of_mappings+1):
+            if source_field.is_divided:
+                for i in range(1, source_field.num_of_parts+1):
+                    master_field_id = request.POST.get(
+                        f"{source_field.id}_{i}_master_{num}")
+                    if master_field_id == '-1':
+                        continue
+                    ordering = request.POST.get(
+                        f"{source_field.id}_{i}_ordering_{num}")
+                    ending = request.POST.get(
+                        f"{source_field.id}_{i}_ending_{num}")
+                    masterdata_rules[master_field_id][ordering] = {
+                        'source_field': source_field.id,
+                        'part': i,
+                        'ending': ending}
+            else:
                 master_field_id = request.POST.get(
-                    f"{source_field.id}_{i}_master")
+                    f"{source_field.id}_master_{num}")
                 if master_field_id == '-1':
                     continue
                 ordering = request.POST.get(
-                    f"{source_field.id}_{i}_ordering")
-                ending = request.POST.get(
-                    f"{source_field.id}_{i}_ending")
+                    f"{source_field.id}_ordering_{num}")
+                ending = request.POST.get(f"{source_field.id}_ending_{num}")
                 masterdata_rules[master_field_id][ordering] = {
                     'source_field': source_field.id,
-                    'part': i,
                     'ending': ending}
-        else:
-            master_field_id = request.POST.get(
-                f"{source_field.id}_master")
-            if master_field_id == '-1':
-                continue
-            ordering = request.POST.get(f"{source_field.id}_ordering")
-            ending = request.POST.get(f"{source_field.id}_ending")
-            masterdata_rules[master_field_id][ordering] = {
-                'source_field': source_field.id,
-                'ending': ending}
     source.masterdata_rules = json.dumps(masterdata_rules)
     source.masterdata_stage = stage
     source.save()
@@ -108,8 +123,13 @@ def stage4_post(source, source_entity, master_entity, master_fields, master_rule
                 source_entity=source_entity, source_field=source_field)
             if source_field.is_divided:
                 part = master_field_rules[key]['part']
-                value = re.split(
-                    source_field.delimiters, source_data.source_value.value)[part-1]
+                try:
+                    value = re.split(
+                        source_field.delimiters, source_data.source_value.value)[part-1]
+                except IndexError:
+                    logger.warning(
+                        f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
+                    value = ''
                 master_value.value += value
                 master_value.value += master_field_rules[key]['ending']
             else:
@@ -199,8 +219,13 @@ def get_master_key_for_source_entity(source_entity, master_rules):
                 source_entity=source_entity, source_field=source_field)
             if source_field.is_divided:
                 part = master_field_rules[key]['part']
-                value = re.split(
-                    source_field.delimiters, source_data.source_value.value)[part-1]
+                try:
+                    value = re.split(
+                        source_field.delimiters, source_data.source_value.value)[part-1]
+                except IndexError:
+                    logger.warning(
+                        f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
+                    value = ''
                 master_key += value
                 master_key += master_field_rules[key]['ending']
             else:
@@ -233,33 +258,46 @@ def get_source_key(source, row):
 
 def create_examples(source):
     examples = {}
-    for field in source.sourcefield_set.all():
-        data = random.choice(field.sourcedata_set.all())
-        if len(data.source_value.value) > 30:
-            examples[field] = data.source_value.value[:30] + '...'
+    source_entity = random.choice(source.sourceentity_set.all())
+    entity_values = SourceValue.objects.filter(
+        source_data__source_entity=source_entity).values_list('source_data__source_field', 'value')
+    for field_id, value in entity_values:
+        if len(value) > 30:
+            examples[field_id] = value[:30] + '...'
         else:
-            examples[field] = data.source_value.value
+            examples[field_id] = value
     return examples
 
 
 def create_examples_with_parts(source):
     examples = {}
-    for field in source.sourcefield_set.all():
-        data = random.choice(field.sourcedata_set.all())
-        if field.is_divided:
-            examples[field] = {}
-            for i in range(1, field.num_of_parts+1):
-                value = re.split(field.delimiters,
-                                 data.source_value.value)[i-1]
-                if len(value) > 30:
-                    examples[field][i] = value[:30] + '...'
+    source_entity = random.choice(source.sourceentity_set.all())
+    entity_values = SourceValue.objects.filter(
+        source_data__source_entity=source_entity).values_list(
+        'source_data__source_field__id',
+        'source_data__source_field__is_divided',
+        'source_data__source_field__delimiters',
+        'source_data__source_field__num_of_parts',
+        'value')
+    for field_id, is_divided, delimiters, num_of_parts, value in entity_values:
+        if is_divided:
+            examples[field_id] = {}
+            for i in range(1, num_of_parts+1):
+                try:
+                    val = re.split(delimiters, value)[i-1]
+                except IndexError:
+                    logger.warning(
+                        f'Splitting not possible. Tried to get part {i} of "{value}". Using Empty string.')
+                    val = ''
+                if len(val) > 30:
+                    examples[field_id][i] = val[:30] + '...'
                 else:
-                    examples[field][i] = value
+                    examples[field_id][i] = val
         else:
-            if len(data.source_value.value) > 30:
-                examples[field] = data.source_value.value[:30] + '...'
+            if len(value) > 30:
+                examples[field_id] = value[:30] + '...'
             else:
-                examples[field] = data.source_value.value
+                examples[field_id] = value
     return examples
 
 
@@ -281,10 +319,17 @@ def create_example_table(source):
                     pk=master_field_rules[key]['source_field'])
                 source_data = SourceData.objects.get(
                     source_entity=source_entity, source_field=source_field)
+                if not source_data.source_value.value:
+                    continue
                 if source_field.is_divided:
                     part = master_field_rules[key]['part']
-                    value = re.split(source_field.delimiters,
-                                     source_data.source_value.value)[part-1]
+                    try:
+                        value = re.split(source_field.delimiters,
+                                         source_data.source_value.value)[part-1]
+                    except IndexError:
+                        logger.warning(
+                            f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
+                        value = ''
                     master_value += value
                     master_value += master_field_rules[key]['ending']
                 else:
@@ -436,6 +481,39 @@ def save_source_fields(source):
                 source_field.save()
 
 
+def create_source_fields(source):
+    """Creates a list of source fields for source based on the source file. 
+       Returns the list."""
+
+    source_fields = []
+    file = source.source_file
+    delimiter = source.delimiter
+    with open(file.path, encoding='utf8') as f:
+        data = DictReader(f, delimiter=delimiter)
+        print("Processing source fields...")
+        for ordering, fieldname in enumerate(data.fieldnames, 1):
+            source_field = SourceField()
+            source_field.source = source
+            source_field.name = fieldname
+            source_field.display_order = ordering
+            source_fields.append(source_field)
+    return source_fields
+
+
+def get_source_fields(source):
+    """Returns a list of the names of the source's source fields."""
+
+    source_fields = []
+    file = source.source_file
+    delimiter = source.delimiter
+    with open(file.path, encoding='utf8') as f:
+        data = DictReader(f, delimiter=delimiter)
+        print("Processing source fields...")
+        for fieldname in data.fieldnames:
+            source_fields.append(fieldname)
+    return source_fields
+
+
 def save_data_old(source):
     delimiter = source.delimiter
     with open(source.source_file.path, encoding='utf8') as f:
@@ -472,7 +550,9 @@ def save_data_old(source):
 
 
 @transaction.atomic
-def save_data(source):
+def save_data(source, source_fields):
+    source.save()
+    SourceField.objects.bulk_create(source_fields)
     delimiter = source.delimiter
     with open(source.source_file.path, encoding='utf8') as f:
         data = DictReader(f)
@@ -496,7 +576,8 @@ def save_data(source):
             source_entity.source = source
             source_entity_objs.append(source_entity)
         print('Saving to database...')
-        source_entities = SourceEntity.objects.bulk_create(source_entity_objs, batch_size=5000)
+        source_entities = SourceEntity.objects.bulk_create(
+            source_entity_objs, batch_size=5000)
 
         f.seek(0)
         data = DictReader(f, delimiter=delimiter)
@@ -528,7 +609,7 @@ def save_data(source):
                 source_field = source_fields[field]
                 source_data = source_datas[source_entity.id][source_field.id]
                 source_value = SourceValue()
-                source_value.value = row[field]
+                source_value.value = row[field].strip()
                 source_value.source_field = source_field
                 source_value.source_data = source_data
                 source_value_objs.append(source_value)
@@ -574,4 +655,3 @@ def set_primary_keys(request, source_fields):
     for source_field in source_fields:
         if request.POST[source_field.name] == 'True':
             source_field.is_primary_key = True
-            source_field.save()

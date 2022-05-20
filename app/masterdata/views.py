@@ -1,6 +1,7 @@
 import json
 import re
 import csv
+from cradle_of_mankind.settings import MEDIA_ROOT
 from cradle_of_mankind.decorators import remember_last_query_params
 from django.contrib import messages
 from django.http import HttpResponse, StreamingHttpResponse
@@ -19,6 +20,10 @@ from .models import (
     SourceField,
     MasterField
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive'])
@@ -67,6 +72,7 @@ def manage_masters(request):
 
 @login_required
 @user_passes_test(user_is_data_admin)
+@transaction.atomic
 def create_master(request, source_pk, stage):
     source = Source.objects.get(pk=source_pk)
     source_fields = source.sourcefield_set.all()
@@ -77,7 +83,7 @@ def create_master(request, source_pk, stage):
             stage1_post(request, source, source_fields, stage)
             return redirect('create-master', source_pk, stage+1)
         examples = create_examples(source)
-        instructions = 'Stage 1/4: Choose which fields need to be divided into parts.'
+        instructions = 'Stage 1/4: Choose which fields need to be divided into parts and how many masters are they mapped to.'
         return render(request, 'masterdata/create_master_stage1.html',
                       {'title': title,
                        'instructions': instructions,
@@ -127,12 +133,7 @@ def create_master(request, source_pk, stage):
         if request.method == 'POST':
             master_rules = json.loads(source.masterdata_rules)
             master_fields = MasterField.objects.all()
-            x = 1
             for source_entity in source.sourceentity_set.all():
-                print(x)
-                if x == 441:
-                    print(x)
-                x += 1
                 master_key = get_master_key_for_source_entity(
                     source_entity, master_rules)
                 try:
@@ -157,8 +158,13 @@ def create_master(request, source_pk, stage):
                                 source_entity=source_entity, source_field=source_field)
                             if source_field.is_divided:
                                 part = master_field_rules[key]['part']
-                                value = re.split(
-                                    source_field.delimiters, source_data.source_value.value)[part-1]
+                                try:
+                                    value = re.split(
+                                        source_field.delimiters, source_data.source_value.value)[part-1]
+                                except IndexError:
+                                    logger.warning(
+                                        f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
+                                    value = ''
                                 master_value.value += value
                                 master_value.value += master_field_rules[key]['ending']
                             else:
@@ -291,9 +297,9 @@ def delete_master(request, source_pk):
     if request.method == 'POST':
         MasterValue.objects.filter(
             source_data__source_entity__source=source).delete()
-        MasterData.objects.filter(mastervalue__isnull=True).distinct().delete()
+        MasterData.objects.filter(mastervalue__isnull=True).delete()
         MasterEntity.objects.filter(
-            masterdata__isnull=True).distinct().delete()
+            masterdata__isnull=True).delete()
 
         source_entities = SourceEntity.objects.filter(source=source)
         for source_entity in source_entities:
@@ -598,36 +604,58 @@ def update_existing_source(request):
     return render(request, 'masterdata/update_existing_source.html', context)
 
 
+def save_source_file(source_file, source_name):
+    upload_path = os.path.join(MEDIA_ROOT, 'source_files', source_name)
+    if not os.path.exists(upload_path):
+        os.makedirs(upload_path)
+    with open(os.path.join(upload_path, source_file.name), 'wb+') as destination:
+        for chunk in source_file.chunks():
+            destination.write(chunk)
+
+
 @login_required
 @user_passes_test(user_is_data_admin)
-def import_new_source(request):
-    if request.method == 'POST':
-        form = SourceDataImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            source = form.save()
-            save_source_fields(source)
+def import_new_source(request, stage=1):
+    if stage == 1:
+        if request.method == 'POST':
+            form = SourceDataImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                source = form.save(commit=False)
+                if Source.objects.filter(name=source.name).exists():
+                    messages.warning(
+                        request, "There exists a source with the same name. Try again.")
+                    return redirect('import-new-source', 1)
+                source_file = request.FILES['source_file']
+                save_source_file(source_file, source.name)
+                request.session['import_source'] = {
+                    'name': source.name,
+                    'description': source.description,
+                    'reference': source.reference,
+                    'source_file_path': os.path.join(MEDIA_ROOT, 'source_files', source.name, source_file.name),
+                    'delimiter': source.delimiter
+                }
+                messages.success(
+                    request, "The file was imported succesfully! Next assign the source its primary key(s).")
+                return redirect('import-new-source', 2)
+            return render(request, 'masterdata/import_new_source.html', {'form': form})
+        form = SourceDataImportForm()
+        return render(request, 'masterdata/import_new_source.html', {'form': form})
+    if stage == 2:
+        import_source = request.session['import_source']
+        source_file_path = import_source.pop('source_file_path')
+        source = Source(**import_source)
+        source.source_file.name = source_file_path
+        source_fields = create_source_fields(source)
+        if request.method == 'POST':
+            set_primary_keys(request, source_fields)
+            save_data(source, source_fields)
             messages.success(
-                request, "Import was succesful! Next give the source its primary key(s).")
-            return redirect('save-new-source-data', source.pk)
-    form = SourceDataImportForm()
-    return render(request, 'masterdata/import_new_source.html', {'form': form})
+                request, "Import was successful! All the data was saved.")
+            return redirect('manage-masters')
 
-
-@login_required
-@user_passes_test(user_is_data_admin)
-def save_new_source_data(request, source_pk):
-    source = Source.objects.get(pk=source_pk)
-    source_fields = source.sourcefield_set.all()
-    if request.method == 'POST':
-        set_primary_keys(request, source_fields)
-        save_data(source)
-        messages.success(
-            request, "Import was succesful! All the data was saved.")
-        return redirect('manage-masters')
-
-    return render(request, 'masterdata/save_new_source_data.html',
-                  {'source': source,
-                   'source_fields': source_fields})
+        return render(request, 'masterdata/save_new_source_data.html',
+                      {'source': source,
+                       'source_fields': source_fields})
 
 
 def source_view(request, source_pk):

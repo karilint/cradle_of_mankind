@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load my_filters %}
 
 {% block content %}
 
@@ -14,6 +15,7 @@
           <th>Field</th>
           <th>Divide</th>
           <th>Do not divide</th>
+          <th>Expected number of mappings to masters</th>
           <th>Example Data</th>
         </tr>
       </thead>
@@ -28,7 +30,18 @@
               <td><input type="radio" id="{{source_field.name}}_divide" name="{{source_field.name}}" value="True"></td>
               <td><input type="radio" id="{{source_field.name}}_do_not_divide" name="{{source_field.name}}" value="False" checked></td>
             {% endif %}
-            <td>{{examples|get_item:source_field}}</td>
+            <td>
+              <select id="{{source_field.name}}_num_of_mappings" name="{{source_field.name}}_num_of_mappings">
+                {% for i in 5|range %}
+                  {% if source_field.num_of_mappings == i %}
+                    <option value="{{i}}" selected>{{i}}</option>
+                  {% else %}
+                    <option value="{{i}}">{{i}}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </td>
+            <td>{{examples|get_item:source_field.id}}</td>
           </tr>
         {% endfor %}
       </tbody>

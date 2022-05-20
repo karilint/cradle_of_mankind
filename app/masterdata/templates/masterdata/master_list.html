@@ -68,38 +68,40 @@
     </form>
   </div>
 
-  <table class="styled-table" style="width: 100%">
-    <thead>
-      <tr>
-        {% for source_field in master_fields %}
-          {% if source_field.abbreviation %}
-            <th class="w3-center">{{ source_field.abbreviation }}</th>
-          {% else %}
-            <th class="w3-center">{{ source_field.name }}</th>
-          {% endif %}
-        {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for entity in page_obj %}
-        <tr class="w3-center highlight">
-          {% for data_value in master_entity_data|get_item:entity %}
-            <td class="w3-center">
-            {% if data_value.mastervalue_set.all|length > 1 %}
-              <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">
-                {{ data_value|to_string }}
-              </a>
+  <div style="overflow-x:auto;">
+    <table class="styled-table" style="width: 100%">
+      <thead>
+        <tr>
+          {% for source_field in master_fields %}
+            {% if source_field.abbreviation %}
+              <th class="w3-center">{{ source_field.abbreviation }}</th>
             {% else %}
-              {% if data_value %}
-                <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">{{ data_value.mastervalue_set.first.value }}</a>
-              {% endif %}
+              <th class="w3-center">{{ source_field.name }}</th>
             {% endif %}
-            </td>
           {% endfor %}
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for entity in page_obj %}
+          <tr class="w3-center highlight">
+            {% for data_value in master_entity_data|get_item:entity %}
+              <td class="w3-center">
+              {% if data_value.mastervalue_set.all|length > 1 %}
+                <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">
+                  {{ data_value|to_string }}
+                </a>
+              {% else %}
+                {% if data_value %}
+                  <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">{{ data_value.mastervalue_set.first.value }}</a>
+                {% endif %}
+              {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   {% if page_obj.has_other_pages %}
 
