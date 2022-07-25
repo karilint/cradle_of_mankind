@@ -12,7 +12,26 @@ services:
       - ./.env
     depends_on:
       - db
+      - redis
     container_name: coh_web
+
+  celery:
+    command: celery -A cradle_of_mankind worker -l INFO
+    build: ./app
+    volumes:
+      - ./app:/src/app
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+      - redis
+    container_name: coh_celery
+
+  redis:
+    image: redis:alpine
+    expose:
+      - "6379"
+    container_name: coh_redis
 
   db:
     image: mariadb

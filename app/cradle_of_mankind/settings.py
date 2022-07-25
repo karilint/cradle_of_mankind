@@ -205,8 +205,8 @@ LOGIN_REDIRECT_URL = 'index'
 
 LOGIN_URL = 'account_login'
 
+# Email Configuration
 SENDGRID_API_KEY = get_var('SENDGRID_API_KEY')
-
 EMAIL_BACKEND = get_var(
     'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = 'smtp.sendgrid.net'
@@ -216,8 +216,10 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = get_var('DEFAULT_FROM_EMAIL')
 
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+# Celery configuration
+CELERY_BROKER_URL = get_var("CELERY_BROKER", "redis://redis:6379")
 
+# Django Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -283,3 +285,6 @@ LOGGING = {
         }
     },
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
