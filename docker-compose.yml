@@ -35,7 +35,6 @@ services:
 
   db:
     image: mariadb
-    restart: always
     ports:
       - 3306
     environment:
@@ -51,7 +50,6 @@ services:
 
   phpmyadmin:
     image: phpmyadmin
-    restart: always
     ports:
       - 8001:80
     environment:
