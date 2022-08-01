@@ -9,28 +9,63 @@
   <h3>{{instructions}}</h3>
   <form method="POST">
     {% csrf_token %}
-    <table class="styled-table">
-      <thead>
-        <tr>
-          <th>Source Field</th>
-          <th>Master Field</th>
-          <th>Ordering</th>
-          <th>Ending</th>
-          <th>Example Data</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for source_field in source_fields %}
-          {% if source_field.is_divided %}
-            {% for num in source_field.num_of_mappings|range %}
-              {% for i in source_field.num_of_parts|range %}
+    <div style="overflow-x:auto;">
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Source Field</th>
+            <th>Master Field</th>
+            <th>Ordering</th>
+            <th>Ending</th>
+            <th>Example Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for source_field in source_fields %}
+            {% if source_field.is_divided %}
+              {% for num in source_field.num_of_mappings|range %}
+                {% for i in source_field.num_of_parts|range %}
+                  <tr>
+                    <td>{{source_field.name}}_part{{i}}</td>
+                    <td>
+                      <select id="{{source_field.id}}_{{i}}_master_{{num}}" name="{{source_field.id}}_{{i}}_master_{{num}}">
+                        <option value="-1">Empty</option>
+                        {% for master_field in master_fields %}
+                          {% if rules|get_item:source_field|get_item:i|get_item:'master_field' == master_field %}
+                            <option value="{{master_field.id}}" selected>{{master_field.name}}</option>
+                          {% else %}
+                            <option value="{{master_field.id}}">{{master_field.name}}</option>
+                          {% endif %}
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td>
+                      <select id="{{source_field.id}}_{{i}}_ordering_{{num}}" name="{{source_field.id}}_{{i}}_ordering_{{num}}">
+                        {% for order in 10|range %}
+                          {% if rules|get_item:source_field|get_item:i|get_item:'ordering' == order %}
+                            <option value="{{order}}" selected>{{order}}</option>
+                          {% else %}
+                            <option value="{{order}}">{{order}}</option>
+                          {% endif%}
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td>
+                      <input type="text" id="{{source_field.id}}_{{i}}_ending_{{num}}" name="{{source_field.id}}_{{i}}_ending_{{num}}" value="{{rules|get_item:source_field|get_item:i|get_item:'ending'}}">
+                    </td>
+                    <td>{{examples|get_item:source_field.id|get_item:i}}</td>
+                  </tr>
+                {% endfor %}
+              {% endfor %}
+            {% else %}
+              {% for num in source_field.num_of_mappings|range %}
                 <tr>
-                  <td>{{source_field.name}}_part{{i}}</td>
+                  <td>{{source_field.name}}</td>
                   <td>
-                    <select id="{{source_field.id}}_{{i}}_master_{{num}}" name="{{source_field.id}}_{{i}}_master_{{num}}">
+                    <select id="{{source_field.id}}_master_{{num}}" name="{{source_field.id}}_master_{{num}}">
                       <option value="-1">Empty</option>
                       {% for master_field in master_fields %}
-                        {% if rules|get_item:source_field|get_item:i|get_item:'master_field' == master_field %}
+                        {% if rules|get_item:source_field|get_item:1|get_item:'master_field' == master_field %}
                           <option value="{{master_field.id}}" selected>{{master_field.name}}</option>
                         {% else %}
                           <option value="{{master_field.id}}">{{master_field.name}}</option>
@@ -39,60 +74,28 @@
                     </select>
                   </td>
                   <td>
-                    <select id="{{source_field.id}}_{{i}}_ordering_{{num}}" name="{{source_field.id}}_{{i}}_ordering_{{num}}">
-                      {% for order in 10|range %}
-                        {% if rules|get_item:source_field|get_item:i|get_item:'ordering' == order %}
-                          <option value="{{order}}" selected>{{order}}</option>
+                    <select id="{{source_field.id}}_ordering_{{num}}" name="{{source_field.id}}_ordering_{{num}}">
+                      {% for i in 10|range %}
+                        {% if rules|get_item:source_field|get_item:1|get_item:'ordering' == i %}
+                          <option value="{{i}}" selected>{{i}}</option>
                         {% else %}
-                          <option value="{{order}}">{{order}}</option>
+                          <option value="{{i}}">{{i}}</option>
                         {% endif%}
                       {% endfor %}
                     </select>
                   </td>
                   <td>
-                    <input type="text" id="{{source_field.id}}_{{i}}_ending_{{num}}" name="{{source_field.id}}_{{i}}_ending_{{num}}" value="{{rules|get_item:source_field|get_item:i|get_item:'ending'}}">
+                    <input type="text" id="{{source_field.id}}_ending_{{num}}" name="{{source_field.id}}_ending_{{num}}" value="{{rules|get_item:source_field|get_item:1|get_item:'ending'}}">
                   </td>
-                  <td>{{examples|get_item:source_field.id|get_item:i}}</td>
+                  <td>{{examples|get_item:source_field.id}}
                 </tr>
               {% endfor %}
-            {% endfor %}
-          {% else %}
-            {% for num in source_field.num_of_mappings|range %}
-              <tr>
-                <td>{{source_field.name}}</td>
-                <td>
-                  <select id="{{source_field.id}}_master_{{num}}" name="{{source_field.id}}_master_{{num}}">
-                    <option value="-1">Empty</option>
-                    {% for master_field in master_fields %}
-                      {% if rules|get_item:source_field|get_item:1|get_item:'master_field' == master_field %}
-                        <option value="{{master_field.id}}" selected>{{master_field.name}}</option>
-                      {% else %}
-                        <option value="{{master_field.id}}">{{master_field.name}}</option>
-                      {% endif %}
-                    {% endfor %}
-                  </select>
-                </td>
-                <td>
-                  <select id="{{source_field.id}}_ordering_{{num}}" name="{{source_field.id}}_ordering_{{num}}">
-                    {% for i in 10|range %}
-                      {% if rules|get_item:source_field|get_item:1|get_item:'ordering' == i %}
-                        <option value="{{i}}" selected>{{i}}</option>
-                      {% else %}
-                        <option value="{{i}}">{{i}}</option>
-                      {% endif%}
-                    {% endfor %}
-                  </select>
-                </td>
-                <td>
-                  <input type="text" id="{{source_field.id}}_ending_{{num}}" name="{{source_field.id}}_ending_{{num}}" value="{{rules|get_item:source_field|get_item:1|get_item:'ending'}}">
-                </td>
-                <td>{{examples|get_item:source_field.id}}
-              </tr>
-            {% endfor %}
-          {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
     <button name="previous" class="w3-btn w3-teal w3-round-large" type="submit">Previous</button>
     <button name="next" class="w3-btn w3-teal w3-round-large" type="submit">Next</button>
 
