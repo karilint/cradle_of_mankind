@@ -11,7 +11,7 @@ from tasks.utils import record_progress, set_task_state
 logger = get_task_logger(__name__)
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, name="Scan Import")
 def save_scan_data(self, scan_data, user_id):
     logger.info(f"Starting scan data import")
     set_task_state(self, 'PROGRESS')

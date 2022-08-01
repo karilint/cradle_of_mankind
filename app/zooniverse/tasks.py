@@ -28,7 +28,7 @@ from .models import (
 logger = get_task_logger(__name__)
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, name="Zooniverse Import")
 def update_zooniverse_data(self):
     required_files = [
         'specimen-numbers-classifications.csv',
