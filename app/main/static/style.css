@@ -1,4 +1,4 @@
-html,body,h1,h2,h3,h4,h5,h6 {
+html, body, h1, h2, h3, h4, h5, h6 {
   font-family: "Roboto", sans-serif;
 }
 
@@ -22,9 +22,10 @@ a .requires-login:hover:after {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
 .isDisabled > a {
   color: currentColor;
-  display: inline-block;  
+  display: inline-block;
   pointer-events: none;
   text-decoration: none;
 }
@@ -48,7 +49,7 @@ a .requires-login:hover:after {
   border-radius: 6px;
   padding: 5px 0;
   text-decoration: none;
-  
+
   /* Position the tooltip */
   position: absolute;
   z-index: 1;
@@ -88,7 +89,7 @@ a .requires-login:hover:after {
   top: 43px;
   bottom: 0;
   height: inherit;
-} 
+}
 
 td, th {
   text-align: center;
@@ -103,6 +104,12 @@ input, select {
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
+}
+
+form #page-size {
+  width: fit-content;
+  padding: 8px 16px;
+  margin: 0px;
 }
 
 textarea {
@@ -132,37 +139,37 @@ input[type=submit]:hover {
 }
 
 .styled-table {
-    border-collapse: collapse;
-    margin: 25px 0;
-    font-size: 0.9em;
-    font-family: sans-serif;
-    min-width: 400px;
-    border-radius: 5px 5px 0 0;
-    overflow: hidden;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  border-collapse: collapse;
+  margin: 25px 0;
+  font-size: 0.9em;
+  font-family: sans-serif;
+  min-width: 400px;
+  border-radius: 5px 5px 0 0;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 }
 
 .styled-table thead tr {
-    background-color: #009879;
-    color: #ffffff;
-    text-align: left;
+  background-color: #009879;
+  color: #ffffff;
+  text-align: left;
 }
 
 .styled-table th,
 .styled-table td {
-    padding: 12px 15px;
+  padding: 12px 15px;
 }
 
 .styled-table tbody tr {
-    border-bottom: thin solid #dddddd;
+  border-bottom: thin solid #dddddd;
 }
 
 .styled-table tbody tr:nth-of-type(even) {
-    background-color: #f3f3f3;
+  background-color: #f3f3f3;
 }
 
 .styled-table tbody tr:last-of-type {
-    border-bottom: 2px solid #009879;
+  border-bottom: 2px solid #009879;
 }
 
 /* .styled-table tbody tr i:hover {
@@ -171,22 +178,22 @@ input[type=submit]:hover {
 } */
 
 .styled-table tbody tr.highlight:hover {
-    color: #009879;
-    text-shadow: 1px 0px 0px #009879;
+  color: #009879;
+  text-shadow: 1px 0px 0px #009879;
 }
 
 .styled-table tbody tr td.highlight:hover {
-    color: #009879;
-    text-shadow: 1px 0px 0px #009879;
+  color: #009879;
+  text-shadow: 1px 0px 0px #009879;
 }
 
 .styled-table tbody tr td i.highlight:hover {
-    color: #009879;
+  color: #009879;
 }
 
 .styled-table tbody tr .highlight:hover {
-    color: #009879;
-    text-shadow: 1px 0px 0px #009879;
+  color: #009879;
+  text-shadow: 1px 0px 0px #009879;
 }
 
 /* The Modal (background) */
@@ -200,8 +207,8 @@ input[type=submit]:hover {
   width: 100%; /* Full width */
   height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
-  background-color: rgb(0,0,0); /* Fallback color */
-  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  background-color: rgb(0, 0, 0); /* Fallback color */
+  background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
 }
 
 /* Modal Content */
@@ -213,7 +220,7 @@ input[type=submit]:hover {
   border: 1px solid #888;
   width: 80%;
   max-width: 700px;
-  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
   -webkit-animation-name: animatetop;
   -webkit-animation-duration: 0.4s;
   animation-name: animatetop;
@@ -252,7 +259,9 @@ input[type=submit]:hover {
   color: white;
 }
 
-.modal-body {padding: 16px 16px 8px 16px;}
+.modal-body {
+  padding: 16px 16px 8px 16px;
+}
 
 .modal-footer {
   padding: 2px 16px;
@@ -321,8 +330,8 @@ ul.socialaccount_providers {
   background-size: 100% 100%;
   display: inline-block;
   height: 20px;
-  width:20px;
-  position:relative;
-  top:5px;
+  width: 20px;
+  position: relative;
+  top: 5px;
   margin-right: 5px;
 }
