@@ -16,21 +16,25 @@ services:
     container_name: coh_web_staging
 
   celery:
+    image: palaeontologyhelsinki/cradle_of_humankind_staging
+    restart: unless-stopped
     command: celery -A cradle_of_mankind worker -l INFO --concurrency=1
-    build: ./app
     volumes:
       - ./app:/src/app
     env_file:
       - ./.env
     depends_on:
       - redis
-    container_name: coh_celery
+    container_name: coh_celery_staging
 
   redis:
     image: redis:alpine
+    restart: unless-stopped
     expose:
       - "6379"
-    container_name: coh_redis
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    container_name: coh_redis_staging
 
   nginx:
     build: ./nginx
