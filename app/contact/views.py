@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from users.models import User
 from django.http.response import HttpResponseRedirect
@@ -6,6 +7,7 @@ from django.core.mail import send_mail
 from .models import Contact
 
 
+@login_required
 def contact_form(request):
     if request.method == "POST":
         contact = Contact()
