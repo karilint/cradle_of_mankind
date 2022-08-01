@@ -15,6 +15,23 @@ services:
       - ./.env
     container_name: coh_web_prod
 
+  celery:
+    command: celery -A cradle_of_mankind worker -l INFO --concurrency=1
+    build: ./app
+    volumes:
+      - ./app:/src/app
+    env_file:
+      - ./.env
+    depends_on:
+      - redis
+    container_name: coh_celery
+
+  redis:
+    image: redis:alpine
+    expose:
+      - "6379"
+    container_name: coh_redis
+
   nginx:
     build: ./nginx
     restart: unless-stopped
