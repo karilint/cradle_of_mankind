@@ -16,7 +16,7 @@ services:
     container_name: coh_web
 
   celery:
-    command: celery -A cradle_of_mankind worker -l INFO
+    command: celery -A cradle_of_mankind worker -l INFO --concurrency=1
     build: ./app
     volumes:
       - ./app:/src/app
