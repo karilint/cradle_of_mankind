@@ -415,10 +415,10 @@ def get_source(request):
     return source
 
 
-def get_source_entities(request, source):
+def get_source_entities(request, source, size=15):
     source_entities = SourceEntity.objects.filter(source=source)
     page = request.GET.get('page', 1)
-    paginator = Paginator(source_entities, 15)
+    paginator = Paginator(source_entities, size)
     try:
         page_entities = paginator.page(page)
     except PageNotAnInteger:

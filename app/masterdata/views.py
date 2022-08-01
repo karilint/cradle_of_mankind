@@ -405,7 +405,7 @@ def master_field_edit_display_order(request):
 
 @login_required
 @user_passes_test(user_is_data_admin)
-@remember_last_query_params('source-list', ['page', 'source'])
+@remember_last_query_params('source-list', ['page', 'source', 'page-size'])
 def source_list(request):
     sources = Source.objects.all()
     if len(sources) < 1:
@@ -414,7 +414,8 @@ def source_list(request):
         return redirect('import-source-data')
     source = get_source(request)
     source_fields = SourceField.objects.filter(source=source)
-    source_entitites = get_source_entities(request, source)
+    page_size = request.GET.get('page-size', default=15)
+    source_entitites = get_source_entities(request, source, page_size)
     source_entity_data = get_source_entity_data(
         source_entitites, source_fields)
     return render(request, 'masterdata/source_list.html',
@@ -422,7 +423,8 @@ def source_list(request):
                    'sources': sources,
                    'source_fields': source_fields,
                    'source_entity_data': source_entity_data,
-                   'page_obj': source_entitites})
+                   'page_obj': source_entitites,
+                   'page_size': page_size})
 
 
 @login_required

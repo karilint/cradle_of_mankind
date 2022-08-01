@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load my_filters %}
 {% load static %}
 
 {% block content %}
@@ -20,6 +21,7 @@
           {% endif %}
         {% endfor %}
       </select>
+      <input type="hidden" name="page-size" value="{{page_size}}" />
       <button class="w3-btn w3-blue w3-round-large" type="submit">Get list</button>
     </form>
   </div>
@@ -49,22 +51,53 @@
 
     <div class="w3-bar w3-center">
       {% if page_obj.has_previous %}
-        <a class="w3-button" href="?source={{ selected_source.id }}&page=1">First</a>
-        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.previous_page_number }}">Previous</a>
+      <a class="w3-button" href="?source={{ selected_source.id }}&page=1&page-size={{page_size}}">First</a>
+      <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.previous_page_number }}&page-size={{page_size}}">Previous</a>
       {% endif %}
 
       {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
-          <a class="w3-button w3-dark-grey w3-margin" href="?source={{ selected_source.id }}&page={{ num }}">{{ num }}</a>
+          <a class="w3-button w3-dark-grey w3-margin" href="?source={{ selected_source.id }}&page={{ num }}&page-size={{page_size}}">{{ num }}</a>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3'%}
-          <a class="w3-button" href="?source={{ selected_source.id }}&page={{ num }}">{{ num }}</a>
+          <a class="w3-button" href="?source={{ selected_source.id }}&page={{ num }}&page-size={{page_size}}">{{ num }}</a>
         {% endif %}
       {% endfor%}
 
       {% if page_obj.has_next %}
-        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.next_page_number }}">Next</a>
-        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.next_page_number }}&page-size={{page_size}}">Next</a>
+        <a class="w3-button" href="?source={{ selected_source.id }}&page={{ page_obj.paginator.num_pages }}&page-size={{page_size}}">Last</a>
       {% endif %}
+
+      <form class="w3-button" action="{% url 'source-list' %}" method="GET">
+        <input type="hidden" name="source" value="{{selected_source.id}}" />
+        <select id="page-size" name="page-size" onchange="this.form.submit()">
+          {% for size in "10 15 25 50 100"|split %}
+            {% if page_size == size %}
+              <option value="{{size}}" selected>{{size}}</option>
+            {% else %}
+              <option value="{{size}}">{{size}}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </form>
+
+    </div>
+
+  {% else %}
+
+    <div class="w3-bar w3-center">
+      <form class="w3-button" action="{% url 'source-list' %}" method="GET">
+        <input type="hidden" name="source" value="{{selected_source.id}}" />
+        <select id="page-size" name="page-size" onchange="this.form.submit()">
+          {% for size in "10 15 25 50 100"|split %}
+            {% if page_size == size %}
+              <option value="{{size}}" selected>{{size}}</option>
+            {% else %}
+              <option value="{{size}}">{{size}}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </form>
     </div>
 
   {% endif %}
