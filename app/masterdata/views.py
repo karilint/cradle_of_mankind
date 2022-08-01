@@ -26,18 +26,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive'])
+@remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive', 'page-size', ])
 def index(request):
     master_sources = get_master_sources()
     search = request.GET.get('search', default='').strip()
     matching = request.GET.get('matching', default='exact')
     case_sensitive = request.GET.get('case-sensitive', default='yes')
+    page_size = request.GET.get('page-size', default=15)
     user_level = get_user_access_level(request)
     master_fields = MasterField.objects.filter(access_level__lte=user_level
                                                ).exclude(display_order=None)
     show_table = len(MasterEntity.objects.all()) > 0
     master_entities = get_master_entities_page(
-        request, search, matching, case_sensitive)
+        request, search, matching, case_sensitive, page_size)
     master_entity_data = get_master_entity_data(
         master_entities, master_fields)
     context = {
@@ -46,6 +47,7 @@ def index(request):
         'master_fields': master_fields,
         'master_entity_data': master_entity_data,
         'page_obj': master_entities,
+        'page_size': page_size,
         'show_table': show_table,
     }
     if search:
@@ -425,7 +427,7 @@ def source_list(request):
 
 @login_required
 @user_passes_test(user_is_data_admin)
-@remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive'])
+@remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive', 'page-size', ])
 def master_list(request):
     master_sources = get_master_sources()
     if len(master_sources) < 1:
@@ -440,11 +442,12 @@ def master_list(request):
     search = request.GET.get('search', default='').strip()
     matching = request.GET.get('matching', default='exact')
     case_sensitive = request.GET.get('case-sensitive', default='yes')
+    page_size = request.GET.get('page-size', default=15)
     user_level = get_user_access_level(request)
     master_fields = MasterField.objects.filter(
         access_level__lte=user_level).exclude(display_order=None)
     master_entities = get_master_entities_page(
-        request, search, matching, case_sensitive)
+        request, search, matching, case_sensitive, page_size)
     master_entity_data = get_master_entity_data(
         master_entities, master_fields)
     context = {
@@ -453,6 +456,7 @@ def master_list(request):
         'master_fields': master_fields,
         'master_entity_data': master_entity_data,
         'page_obj': master_entities,
+        'page_size': page_size,
     }
     if search:
         context['search'] = search

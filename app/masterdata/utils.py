@@ -428,10 +428,10 @@ def get_source_entities(request, source):
     return page_entities
 
 
-def get_master_entities_page(request, search, matching, case_sensitive):
+def get_master_entities_page(request, search, matching, case_sensitive, size=15):
     master_entities = get_master_entities(search, matching, case_sensitive)
     page = request.GET.get('page', 1)
-    paginator = Paginator(master_entities, 15)
+    paginator = Paginator(master_entities, size)
     try:
         page_entities = paginator.page(page)
     except PageNotAnInteger:
