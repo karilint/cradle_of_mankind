@@ -676,6 +676,7 @@ class Echo:
         return value
 
 
+@login_required
 def export_to_csv(request):
     """A view that streams a large CSV file."""
 
