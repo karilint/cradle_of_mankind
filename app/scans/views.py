@@ -1,19 +1,22 @@
 import os
-from django.db import transaction
-from cradle_of_mankind.decorators import remember_last_query_params
-from users.views import user_is_data_admin
-from json import load
-from django.contrib import messages
+import json
 
 from cradle_of_mankind.settings import MEDIA_ROOT
+from cradle_of_mankind.decorators import remember_last_query_params
+from users.views import user_is_data_admin
+from tasks.models import Task
+from django.contrib import messages
+from celery import uuid
+from django_celery_results.models import TaskResult
 
+
+from django.db import transaction
 from django.db.models.query_utils import Q
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
 from .models import Scan
 from .forms import ScanDataImportForm, ScanEditForm
-from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     UserPassesTestMixin,
@@ -23,6 +26,8 @@ from django.views.generic import (
     DetailView,
     UpdateView,
 )
+
+from .tasks import save_scan_data
 
 
 @login_required
@@ -132,35 +137,24 @@ def import_scans(request):
     if request.method == 'POST':
         form = ScanDataImportForm(request.POST, request.FILES)
         if form.is_valid():
-            save_json_to_database(request.FILES['file'], request.user)
-            messages.success(request, "Upload was finished!")
-            return redirect('index')
+            scan_data = json.load(request.FILES['file'])
+            task_id = uuid()
+            task_name = 'Scan Import'
+            user = request.user
+            info = {
+                'task_name': task_name
+            }
+            task_result = TaskResult.objects.create(
+                    task_id=task_id, 
+                    task_name=task_name)
+            task = Task.objects.create(
+                    task_id=task_id, 
+                    task_result=task_result,
+                    user=user, 
+                    info=json.dumps(info))
+            save_scan_data.apply_async((scan_data, user.id), task_id=task_id)
+            return redirect('task-view', task_id)
     else:
         form = ScanDataImportForm()
     return render(request, 'scans/scan_import.html', {'form': form})
 
-
-@transaction.atomic
-def save_json_to_database(json_file, user):
-    data = load(json_file)
-    data = data['rows']
-    existing_ids = set(Scan.objects.all().values_list('id', flat=True))
-    new_scans = []
-    for obj in data:
-        if obj['id'] in existing_ids:
-            continue
-        else:
-            scan = Scan()
-            scan.id = obj['id']
-            scan.type = obj['card_type']
-            scan.status = obj['STG_STATUS']
-            scan.image = f"scans/{scan.id}.jpg"
-            if not obj['txt']:
-                scan.text = ''
-            else:
-                scan.text = obj['txt']
-            scan.created_by = user
-            scan.modified_by = user
-            new_scans.append(scan)
-            print(f"Scan (id: {scan.id}) created")
-    Scan.objects.bulk_create(new_scans)
