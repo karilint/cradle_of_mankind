@@ -2,7 +2,6 @@ from django.db import models
 from users.models import User
 from django.db.models.deletion import PROTECT
 from django.db.models.fields.related import ForeignKey, OneToOneField
-from django_userforeignkey.models.fields import UserForeignKey
 from scans.models import Scan
 
 
