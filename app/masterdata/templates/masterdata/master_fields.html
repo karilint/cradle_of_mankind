@@ -14,6 +14,7 @@
               <th>Field</th>
               <th>Display Order</th>
               <th>Primary Key</th>
+              <th>Access Level</th>
               <th>Edit</th>
           </tr>
       </thead>
@@ -31,6 +32,7 @@
               {% else %}
                 <td>No</td>
               {% endif %}
+              <td>{{field.get_access_level_display}}</td>
               <td>
                 <a href="{% url 'master-field-edit' field.id %}"><i class="material-icons">edit</i></a>
               </td>

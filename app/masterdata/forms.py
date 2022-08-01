@@ -25,4 +25,4 @@ class MasterFieldForm(forms.ModelForm):
 
     class Meta:
         model = MasterField
-        fields = ['name', 'abbreviation', 'description', 'primary_key']
+        fields = ['name', 'abbreviation', 'access_level', 'description', 'primary_key',]

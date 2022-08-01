@@ -25,6 +25,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_user_access_level(request):
+    if request.user.is_authenticated:
+        if request.user.is_data_admin:
+            return 4
+        elif request.user.is_editor:
+            return 3
+        return 2
+    return 1
+
+
 def stage1_post(request, source, source_fields, stage):
     changed_source_fields = []
     for source_field in source_fields:

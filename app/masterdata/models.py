@@ -58,11 +58,19 @@ class MasterEntity(models.Model):
 
 
 class MasterField(models.Model):
+
+    class AccessLevels(models.IntegerChoices):
+        GUEST = 1
+        REGISTERED = 2
+        EDITOR = 3
+        DATA_ADMIN = 4
+
     name = models.CharField(max_length=255, unique=True)
     abbreviation = models.CharField(max_length=255, blank=True, default='')
     primary_key = models.BooleanField(default=False)
     display_order = models.IntegerField(null=True, default=None)
     description = models.TextField(blank=True)
+    access_level = models.IntegerField(choices=AccessLevels.choices, default=AccessLevels.GUEST)
 
     class Meta:
         ordering = ["display_order"]
