@@ -12,6 +12,7 @@ from .forms import DataImportForm
 from celery import uuid
 from django_celery_results.models import TaskResult
 from .tasks import update_zooniverse_data
+from .utils import check_imported_files
 
 from tasks.models import Task
 
