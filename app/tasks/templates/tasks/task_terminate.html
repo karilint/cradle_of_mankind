@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <h3>Are you sure you want to terminate this task ({{task_id}})?</h3>
+
+  <form class="w3-container w3-padding" method="POST">
+    {% csrf_token %}
+    <button class="w3-btn w3-red w3-round-large" type="submit">Terminate</button>
+    <a href="{% url 'task-view' task_id %}" class="w3-btn w3-blue w3-round-large">Cancel</a>
+  </form>
+
+{% endblock content %}
+

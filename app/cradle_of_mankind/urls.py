@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path
+from django.urls import path, re_path
 from django.urls.conf import include
 from users.views import index
 
@@ -29,7 +29,9 @@ urlpatterns = [
     path('quality_control/', include('quality_control.urls')),
     path('masterdata/', include('masterdata.urls')),
     path('contact/', include('contact.urls')),
+    path('tasks/', include('tasks.urls')),
     path('', index, name='index'),
+    re_path(r'^celery-progress/', include('celery_progress.urls')),
 ]
 
 if settings.DEBUG:

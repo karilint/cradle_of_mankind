@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <div class="w3-card-4">
+
+    <div class="w3-container w3-blue" >
+      <h2>{{task_info.task_name}} ({{task.task_id}})</h2>
+    </div>
+
+    <div class="w3-container w3-padding"
+      <div class='progress-wrapper'>
+        <div id='progress-bar' class='progress-bar' style="background-color: #68a9ef; width: 0%;">&nbsp;</div>
+      </div>
+      <div class="w3-container w3-padding" id="progress-bar-message">Pending...</div> 
+
+      <div class="w3-container w3-padding">
+        <a href="{% url 'task-terminate' task.task_id %}" id="terminate-button" class="w3-btn w3-red w3-round-large">Terminate Task</a>
+        <a href="{% url 'task-list' %}" class="w3-btn w3-blue w3-round-large">Back to Task List</a>
+      </div>
+    </div>
+
+  </div>
+
+{% endblock content %}
+
+{% block javascript %}
+  <script>
+    // vanilla JS version
+    document.addEventListener("DOMContentLoaded", function () {
+      function customProgress(progressBarElement, progressBarMessageElement, progress) {
+        progressBarElement.style.backgroundColor = this.barColors.progress;
+        progressBarElement.style.borderstyle = 'solid';
+        progressBarElement.style.width = progress.percent + "%";
+        var description = progress.description || "";
+        if (progress.current == 0) {
+            if (progress.pending === true) {
+                progressBarMessageElement.textContent = this.messages.waiting;
+            } else {
+                progressBarMessageElement.textContent = this.messages.started;
+            }
+        } else {
+            progressBarMessageElement.textContent = progress.current + ' of ' + progress.total + ' processed. ' + description;
+        }
+      }
+
+      function customSuccess(progressBarElement, progressBarMessageElement, result) {
+        result = this.getMessageDetails(result);
+        if (progressBarElement) {
+            progressBarElement.style.backgroundColor = this.barColors.success;
+        }
+        if (progressBarMessageElement) {
+            progressBarMessageElement.textContent = "Task completed successfully! " + result;
+        }
+        const terminate_button = document.getElementById("terminate-button");
+        terminate_button.classList.add("w3-disabled");
+        terminate_button.setAttribute("href", "#");
+      }
+
+      function customError(progressBarElement, progressBarMessageElement, excMessage, data) {
+        progressBarElement.style.backgroundColor = this.barColors.error;
+        excMessage = excMessage || '';
+        progressBarMessageElement.textContent = excMessage;
+        const terminate_button = document.getElementById("terminate-button");
+        terminate_button.classList.add("w3-disabled");
+        terminate_button.setAttribute("href", "#");
+      }
+
+      var progressUrl = "{% url 'celery_progress:task_status' task.task_id %}";
+      CeleryProgressBar.initProgressBar(progressUrl, {
+        onProgress: customProgress,
+        onSuccess: customSuccess,
+        onError: customError,
+
+      });
+    });
+  </script>
+  <script src="{% static 'celery_progress/celery_progress.js' %}"></script>
+{% endblock javascript %}

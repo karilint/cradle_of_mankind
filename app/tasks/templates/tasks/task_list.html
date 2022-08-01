@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load my_filters %}
+{% load static %}
+
+{% block content %}
+
+  <h2>Background Tasks</h2>
+  <table class="styled-table" style="max-width: 100%;">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Status</th>
+        <th>Status Text</th>
+        <th>Created Datetime</th>
+        <th>Completed Datetime</th>
+        <th>View</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+        <tr>
+          <td>{{task_info|get_item:task.task_id|get_item:'task_name'}}</td>
+          {% if task_results|get_item:task.task_id|get_item:'status' == 'SUCCESS' %}
+            <td><i class="material-icons" style="color: darkgreen">check_circle</i></td>
+          {% elif task_results|get_item:task.task_id|get_item:'status' == 'PROGRESS' %}
+            <td><i class="material-icons" style="color: darkorange">timelapse</i></td>
+          {% elif task_results|get_item:task.task_id|get_item:'status' == 'STARTED' %}
+            <td><i class="material-icons" style="color: darkorange">info</i></td>
+          {% elif task_results|get_item:task.task_id|get_item:'status' == 'REVOKED' %}
+            <td><i class="material-icons" style="color: darkred">remove_circle</i></td>
+          {% elif task_results|get_item:task.task_id|get_item:'status' == 'PENDING' %}
+            <td><i class="material-icons" style="color: darkgreen">radio_button_unchecked</i></td>
+          {% elif task_results|get_item:task.task_id|get_item:'status' == 'FAILURE' %}
+            <td><i class="material-icons" style="color: darkred">error</i></td>
+          {% elif task_results|get_item:task.task_id|get_item:'status' == 'PENDING/REVOKED' %}
+            <td><i class="material-icons" style="color: darkorange">warning</i></td>
+          {% else %}
+            <td><i class="material-icons" style="color: darkred">error</i></td>
+          {% endif %}
+          <td>{{task_results|get_item:task.task_id|get_item:'status'}}</td>
+          <td>{{task_results|get_item:task.task_id|get_item:'date_created'}}</td>
+          {% if task_results|get_item:task.task_id|get_item:'status' == 'PROGRESS' %}
+            <td>TBD</td>
+          {% elif task_results|get_item:task.task_id|get_item:'status' == 'PENDING' %}
+            <td>TBD</td>
+          {% else %}
+            <td>{{task_results|get_item:task.task_id|get_item:'date_done'}}</td>
+          {% endif %}
+          <td><a href="{% url 'task-view' task.task_id %}"><i class="material-icons highlight">arrow_forward</i></a>
+        </tr>
+      {% endfor %}
+    </tbody>
+</table>
+
+{% endblock content %}

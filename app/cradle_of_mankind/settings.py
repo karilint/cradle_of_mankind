@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'quality_control.apps.QualityControlConfig',
     'masterdata.apps.MasterdataConfig',
     'contact.apps.ContactConfig',
+    'tasks.apps.TasksConfig',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -79,6 +80,8 @@ INSTALLED_APPS = [
     'crispy_forms',
     'simple_history',
     'django_userforeignkey',
+    'django_celery_results',
+    'celery_progress',
 ]
 
 SITE_ID = 1
@@ -218,6 +221,7 @@ DEFAULT_FROM_EMAIL = get_var('DEFAULT_FROM_EMAIL')
 
 # Celery configuration
 CELERY_BROKER_URL = get_var("CELERY_BROKER", "redis://redis:6379")
+CELERY_RESULT_BACKEND = 'django-db'
 
 # Django Logging
 LOGGING = {
@@ -269,11 +273,36 @@ LOGGING = {
             'backupCount': 5,
             'maxBytes': 10485760,
         },
+        'celery_info_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'celery_info.log'),
+            'mode': 'a',
+            'encoding': 'utf-8',
+            'formatter': 'my_formatter',
+            'backupCount': 5,
+            'maxBytes': 10485760,
+        },
+        'celery_debug_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'celery_debug.log'),
+            'mode': 'a',
+            'encoding': 'utf-8',
+            'formatter': 'my_formatter',
+            'backupCount': 5,
+            'maxBytes': 10485760,
+        },
     },
     'loggers': {
         '': {
             'level': get_var('ROOT_LOG_LEVEL', 'DEBUG'),
             'handlers': ['console', 'mail_admins', 'info_file', 'debug_file', ],
+        },
+        'celery': {
+            'level': get_var('CELERY_LOG_LEVEL', 'INFO'),
+            'handlers': ['console', 'mail_admins', 'celery_info_file', 'celery_debug_file'],
+            'propagate': False,
         },
         'django': {
             'level': get_var('DJANGO_LOG_LEVEL', 'DEBUG'),

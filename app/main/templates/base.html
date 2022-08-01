@@ -70,6 +70,9 @@
     {% else %}
       <button id="login-btn" class="w3-button w3-bar-item w3-right w3-hover-white">Login | Sign up</button>
     {% endif %}
+    {% if user.is_data_admin %}
+      <a href="{% url 'task-list' %}" class="w3-aritem w3-button w3-right w3-hover-white">Tasks</a>
+    {% endif %}
     <button id="contact-form-btn" class="w3-button w3-bar-item w3-right w3-hover-white">Contact</button>
   </div>
 </div>
