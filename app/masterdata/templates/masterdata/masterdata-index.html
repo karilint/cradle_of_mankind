@@ -146,6 +146,25 @@
         </form>
       </div>
 
+    {% else %}
+
+      <div class="w3-bar w3-center">
+        <form class="w3-button" action="{% url 'masterdata-index' %}" method="GET">
+          <input type="hidden" name="search" value="{{search}}" />
+          <input type="hidden" name="matching" value="{{matching}}" />
+          <input type="hidden" name="case-sensitive" value="{{case_sensitive}}" />
+          <select id="page-size" name="page-size" onchange="this.form.submit()">
+            {% for size in "10 15 25 50 100"|split %}
+              {% if page_size == size %}
+                <option value="{{size}}" selected>{{size}}</option>
+              {% else %}
+                <option value="{{size}}">{{size}}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+
     {% endif %}
 
   {% else %}
