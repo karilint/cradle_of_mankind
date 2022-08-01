@@ -9,7 +9,11 @@
     <div>
       <img style="height: 60px; padding-right: 10px; padding-bottom: 10px;" src="{% static 'images/example.jpeg' %}" alt="Example image">
       <h2 style="display: inline-block">Welcome to the Cradle of Humanity &mdash; The fossil collection data at the NMK</h2>
-      <a href="{% url 'export' %}?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}" style="float: right" class="w3-btn w3-green w3-round">Export <i class="fa fa-file-text"></i></a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'export' %}?search={{search}}&matching={{matching}}&case-sensitive={{case_sensitive}}" style="float: right" class="w3-btn w3-green w3-round">Export <i class="fa fa-file-text"></i></a>
+      {% else %}
+        <a title="Requires Login" href="#" style="float: right" class="w3-btn w3-green w3-round w3-disabled requires-login">Export <i class="fa fa-file-text"></i></a>
+      {% endif %}
       <button style="float: right; margin-right: 10px;" onclick="hide_show()" class="w3-btn w3-green w3-round">Search <i class="fa fa-search"></i> / Filter <i class="fa fa-filter"></i></button>
       <button style="float: right; margin-right: 10px;" class="w3-btn w3-green w3-round" type="button" id="clear-button2">Clear</button>
     </div>

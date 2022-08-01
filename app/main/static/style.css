@@ -2,6 +2,18 @@ html,body,h1,h2,h3,h4,h5,h6 {
   font-family: "Roboto", sans-serif;
 }
 
+a .requires-login:hover:after {
+  position: absolute;
+  top: 0;
+  left: 75%;
+  width: 100%;
+  content: attr(title);
+  background-color: #ffa;
+  color: #000;
+  line-height: 1.4em;
+  border: 1px solid #000;
+}
+
 .hide {
   display: none !important;
 }
