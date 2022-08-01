@@ -300,7 +300,7 @@ LOGGING = {
             'handlers': ['console', 'mail_admins', 'info_file', 'debug_file', ],
         },
         'celery': {
-            'level': get_var('CELERY_LOG_LEVEL', 'INFO'),
+            'level': get_var('CELERY_LOG_LEVEL', 'DEBUG'),
             'handlers': ['console', 'mail_admins', 'celery_info_file', 'celery_debug_file'],
             'propagate': False,
         },
