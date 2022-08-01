@@ -462,6 +462,7 @@ def master_list(request):
     return render(request, 'masterdata/master_list.html', context)
 
 
+@login_required
 def master_entity_view(request, master_entity_pk):
     if request.method == 'POST':
         pass
@@ -517,6 +518,8 @@ def master_entity_edit(request, master_entity_pk, source_entity_pk, master_field
                    'comments': comments})
 
 
+@login_required
+@user_passes_test(user_is_data_admin)
 def master_entity_merge(request, master_entity_pk, source_entity_pk):
     master_entity = MasterEntity.objects.get(pk=master_entity_pk)
     source_entity = SourceEntity.objects.get(pk=source_entity_pk)
