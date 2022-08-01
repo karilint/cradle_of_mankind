@@ -12,44 +12,46 @@
     <p>There is only one source for this master entity.</p>
   {% endif %}
 
-  <table class="styled-table" style="width: 100%">
-    <thead>
-      <tr>
-        <th class="w3-center">Source</th>
-        <th class="w3-center">Source Entity ID</th>
-        {% for master_field in master_fields %}
-          <th class="w3-center">{{ master_field.name }}</th>
-        {% endfor %}
-        <th class="w3-center">Edit</th>
-        <th class="w3-center">Merge</th>
-        <th class="w3-center">Split</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for entity in source_entities %}
-        <tr class="w3-center">
-          <td class="w3-center highlight"><a style="text-decoration: none;" href="{% url 'source-view' entity.source.id %}">{{entity.source.name}}</a></td>
-          <td class="w3-center">{{entity.id}}</td>
-          {% for master_value in master_entity_data|get_item:entity %}
-            <td class="w3-center">{{master_value.value}}</td>
+  <div style="overflow-x:auto;">
+    <table class="styled-table" style="width: 100%">
+      <thead>
+        <tr>
+          <th class="w3-center">Source</th>
+          <th class="w3-center">Source Entity ID</th>
+          {% for master_field in master_fields %}
+            <th class="w3-center">{{ master_field.name }}</th>
           {% endfor %}
-          {% if user.is_data_admin %}
-            <td><span><a href="{% url 'master-entity-choose-edit' master_entity.id entity.id %}"><i class="material-icons highlight">edit</i></a></span></td>
-            <td><span><a href="{% url 'master-entity-merge' master_entity.id entity.id %}"><i class="material-icons highlight">call_merge</i></a></span></td>
-            {% if source_entities|length > 1 %}
-              <td><a href="{% url 'master-entity-split' master_entity.id entity.id %}"><i class="material-icons highlight">call_split</i></a></td>
-            {% else %}
-              <td><span class="isDisabled"><a href="{% url 'master-entity-split' master_entity.id entity.id %}"><i class="material-icons highlight">call_split</i></a></span></td>
-            {% endif %}
-          {% else %}
-            <td><span class="isDisabled"><a href=""><i class="material-icons">edit</i></a></span></td>
-            <td><span class="isDisabled"><a href=""><i class="material-icons">call_merge</i></a></span></td>
-            <td><span class="isDisabled"><a href=""><i class="material-icons">call_split</i></a></span></td>
-          {% endif %}
+          <th class="w3-center">Edit</th>
+          <th class="w3-center">Merge</th>
+          <th class="w3-center">Split</th>
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for entity in source_entities %}
+          <tr class="w3-center">
+            <td class="w3-center highlight"><a style="text-decoration: none;" href="{% url 'source-view' entity.source.id %}">{{entity.source.name}}</a></td>
+            <td class="w3-center">{{entity.id}}</td>
+            {% for master_value in master_entity_data|get_item:entity %}
+              <td class="w3-center">{{master_value.value}}</td>
+            {% endfor %}
+            {% if user.is_data_admin %}
+              <td><span><a href="{% url 'master-entity-choose-edit' master_entity.id entity.id %}"><i class="material-icons highlight">edit</i></a></span></td>
+              <td><span><a href="{% url 'master-entity-merge' master_entity.id entity.id %}"><i class="material-icons highlight">call_merge</i></a></span></td>
+              {% if source_entities|length > 1 %}
+                <td><a href="{% url 'master-entity-split' master_entity.id entity.id %}"><i class="material-icons highlight">call_split</i></a></td>
+              {% else %}
+                <td><span class="isDisabled"><a href="{% url 'master-entity-split' master_entity.id entity.id %}"><i class="material-icons highlight">call_split</i></a></span></td>
+              {% endif %}
+            {% else %}
+              <td><span class="isDisabled"><a href=""><i class="material-icons">edit</i></a></span></td>
+              <td><span class="isDisabled"><a href=""><i class="material-icons">call_merge</i></a></span></td>
+              <td><span class="isDisabled"><a href=""><i class="material-icons">call_split</i></a></span></td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
 {% endblock content %}
 
