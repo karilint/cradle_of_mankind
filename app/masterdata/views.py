@@ -32,7 +32,9 @@ def index(request):
     search = request.GET.get('search', default='').strip()
     matching = request.GET.get('matching', default='exact')
     case_sensitive = request.GET.get('case-sensitive', default='yes')
-    master_fields = MasterField.objects.exclude(display_order=None)
+    user_level = get_user_access_level(request)
+    master_fields = MasterField.objects.filter(access_level__lte=user_level
+                                               ).exclude(display_order=None)
     show_table = len(MasterEntity.objects.all()) > 0
     master_entities = get_master_entities_page(
         request, search, matching, case_sensitive)
@@ -438,7 +440,9 @@ def master_list(request):
     search = request.GET.get('search', default='').strip()
     matching = request.GET.get('matching', default='exact')
     case_sensitive = request.GET.get('case-sensitive', default='yes')
-    master_fields = MasterField.objects.exclude(display_order=None)
+    user_level = get_user_access_level(request)
+    master_fields = MasterField.objects.filter(
+        access_level__lte=user_level).exclude(display_order=None)
     master_entities = get_master_entities_page(
         request, search, matching, case_sensitive)
     master_entity_data = get_master_entity_data(
@@ -467,8 +471,10 @@ def master_entity_view(request, master_entity_pk):
     if request.method == 'POST':
         pass
     master_entity = MasterEntity.objects.get(pk=master_entity_pk)
+    user_level = get_user_access_level(request)
     master_fields = MasterField.objects.filter(
-        masterdata__master_entity=master_entity)
+        masterdata__master_entity=master_entity
+    ).filter(access_level__lte=user_level)
     source_entities = master_entity.source_entities.all()
     master_entity_data = get_separated_master_entity_data(
         master_entity, master_fields, source_entities)
