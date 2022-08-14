@@ -6,9 +6,14 @@ from cradle_of_mankind.decorators import remember_last_query_params
 from django.contrib import messages
 from django.http import HttpResponse, StreamingHttpResponse
 from users.views import user_is_data_admin
+from tasks.models import Task
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
+from celery import uuid
+from django_celery_results.models import TaskResult
+
 from .forms import MasterFieldForm, SourceDataImportForm
+from .tasks import import_source_data 
 from .utils import *
 from .models import (
     EditComment,
@@ -608,7 +613,7 @@ def master_entity_split(request, master_entity_pk, source_entity_pk):
 
 @login_required
 @user_passes_test(user_is_data_admin)
-def import_source_data(request):
+def import_source_data_view(request):
     return render(request, 'masterdata/import_source_data.html')
 
 
@@ -642,7 +647,7 @@ def import_new_source(request, stage=1):
                     return redirect('import-new-source', 1)
                 source_file = request.FILES['source_file']
                 save_source_file(source_file, source.name)
-                request.session['import_source'] = {
+                request.session['source_import'] = {
                     'name': source.name,
                     'description': source.description,
                     'reference': source.reference,
@@ -656,18 +661,30 @@ def import_new_source(request, stage=1):
         form = SourceDataImportForm()
         return render(request, 'masterdata/import_new_source.html', {'form': form})
     if stage == 2:
-        import_source = request.session['import_source']
-        source_file_path = import_source.pop('source_file_path')
-        source = Source(**import_source)
+        source_import = request.session['source_import']
+        if request.method == 'POST':
+            task_id = uuid()
+            task_name = 'Source Data Import'
+            user = request.user
+            info = {
+                'task_name': task_name
+            }
+            task_result = TaskResult.objects.create(
+                    task_id=task_id,
+                    task_name=task_name)
+            task = Task.objects.create(
+                    task_id=task_id,
+                    task_result=task_result,
+                    user=user,
+                    info=json.dumps(info))
+            import_source_data.apply_async(
+                    (source_import, request.POST), 
+                    task_id=task_id)
+            return redirect('task-view', task_id)
+        source_file_path = source_import.pop('source_file_path')
+        source = Source(**source_import)
         source.source_file.name = source_file_path
         source_fields = create_source_fields(source)
-        if request.method == 'POST':
-            set_primary_keys(request, source_fields)
-            save_data(source, source_fields)
-            messages.success(
-                request, "Import was successful! All the data was saved.")
-            return redirect('manage-masters')
-
         return render(request, 'masterdata/save_new_source_data.html',
                       {'source': source,
                        'source_fields': source_fields})

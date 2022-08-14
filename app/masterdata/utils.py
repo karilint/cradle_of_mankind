@@ -257,13 +257,18 @@ def set_source_key_for_source_entity(source_entity):
     source_entity.save()
 
 
-def get_source_key(source, row):
+def get_source_key(source_fields, row):
     """Gets source_key for source_entity from csv row"""
-    key_fields = source.sourcefield_set.filter(is_primary_key=True)
     key_field_values = []
-    for field in key_fields:
-        key_field_values.append(row[field.name])
+    for field in source_fields:
+        if field.is_primary_key:
+            key_field_values.append(row[field.name])
     return '-'.join(key_field_values)
+    # key_fields = source.sourcefield_set.filter(is_primary_key=True)
+    # key_field_values = []
+    # for field in key_fields:
+    #     key_field_values.append(row[field.name])
+    # return '-'.join(key_field_values)
 
 
 def create_examples(source):
@@ -661,7 +666,8 @@ def save_uploaded_file(f):
             destination.write(chunk)
 
 
-def set_primary_keys(request, source_fields):
+def set_primary_keys(request_post, source_fields):
     for source_field in source_fields:
-        if request.POST[source_field.name] == 'True':
+        if request_post[source_field.name] == 'True':
             source_field.is_primary_key = True
+            

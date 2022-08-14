@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     export_to_csv,
-    import_source_data,
+    import_source_data_view,
     index,
     manage_masters,
     master_entity_choose_edit,
@@ -23,7 +23,7 @@ from .views import (
 )
 
 urlpatterns = [
-    path('import/', import_source_data, name='import-source-data'),
+    path('import/', import_source_data_view, name='import-source-data'),
     path('import/update-existing-source',
          update_existing_source, name='update-existing-source'),
     path('import/new/<int:stage>', import_new_source, name='import-new-source'),
