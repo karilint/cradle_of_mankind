@@ -20,6 +20,8 @@ from .utils import (
     create_source_fields, 
     set_primary_keys,
     get_source_key,
+    get_master_key_for_source_entity,
+    stage4_post,
 )
 from .models import (
     Source, 
@@ -27,6 +29,10 @@ from .models import (
     SourceEntity, 
     SourceData, 
     SourceValue,
+    MasterEntity,
+    MasterField,
+    MasterData,
+    MasterValue,
 )
 
 
@@ -93,4 +99,75 @@ def import_source_data(self, source_import, request_post):
         SourceEntity.objects.bulk_create(source_entity_objs, batch_size=5000)
         SourceData.objects.bulk_create(source_data_objs, batch_size=5000)
         SourceValue.objects.bulk_create(source_value_objs, batch_size=5000)
+
+
+@shared_task(bind=True)
+def create_master_data(self, source_id):
+    logger.info(f"Starting masterdata creation")
+    set_task_state(self, 'PROGRESS')
+    record_progress(self, 1, 100, 1, "Live progress is not recorded for this process. This might take awhile.")
+    with transaction.atomic():
+        source = Source.objects.get(id=source_id)
+        master_rules = json.loads(source.masterdata_rules)
+        master_fields = MasterField.objects.all()
+        total_work = source.sourceentity_set.count()
+        for counter, source_entity in enumerate(source.sourceentity_set.all(), 1):
+            logger.debug(f"Masterdata progress: {counter} of {total_work}")
+            master_key = get_master_key_for_source_entity(
+                source_entity, master_rules)
+            try:
+                master_entity = MasterEntity.objects.get(
+                    master_key=master_key)
+                master_entity.source_entities.add(source_entity)
+                for master_field in MasterField.objects.all():
+                    source_datas = []
+                    master_field_rules = master_rules[str(master_field.id)]
+                    if not master_field_rules:
+                        continue
+                    ordered_keys = sorted(list(master_field_rules.keys()))
+                    master_value = MasterValue()
+                    master_data = MasterData.objects.get(
+                        master_entity=master_entity, master_field=master_field)
+                    master_value.master_field = master_field
+                    master_value.value = ''
+                    for key in ordered_keys:
+                        source_field = SourceField.objects.get(
+                            pk=master_field_rules[key]['source_field'])
+                        source_data = SourceData.objects.get(
+                            source_entity=source_entity, source_field=source_field)
+                        if source_field.is_divided:
+                            part = master_field_rules[key]['part']
+                            try:
+                                value = re.split(
+                                    source_field.delimiters, source_data.source_value.value)[part-1]
+                            except IndexError:
+                                logger.warning(
+                                    f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
+                                value = ''
+                            master_value.value += value
+                            master_value.value += master_field_rules[key]['ending']
+                        else:
+                            master_value.value += source_data.source_value.value
+                            master_value.value += master_field_rules[key]['ending']
+                        source_datas.append(source_data)
+                    master_value.master_data = master_data
+                    master_value.save()
+                    master_data.save()
+                    for data in source_datas:
+                        master_data.source_data.add(data)
+                        master_value.source_data.add(data)
+                    master_field.save()
+
+            except MasterEntity.DoesNotExist:
+                master_entity = MasterEntity()
+                master_entity.master_key = master_key
+                master_entity.source = source
+                master_entity.save()
+                master_entity.source_entities.add(source_entity)
+                stage4_post(source, source_entity, master_entity,
+                            master_fields, master_rules)
+        source.master_created = True
+        source.save()
+
+
 

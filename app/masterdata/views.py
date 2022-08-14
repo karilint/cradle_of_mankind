@@ -13,7 +13,7 @@ from celery import uuid
 from django_celery_results.models import TaskResult
 
 from .forms import MasterFieldForm, SourceDataImportForm
-from .tasks import import_source_data 
+from .tasks import import_source_data, create_master_data
 from .utils import *
 from .models import (
     EditComment,
@@ -140,65 +140,24 @@ def create_master(request, source_pk, stage):
 
     elif stage == 4:
         if request.method == 'POST':
-            master_rules = json.loads(source.masterdata_rules)
-            master_fields = MasterField.objects.all()
-            for source_entity in source.sourceentity_set.all():
-                master_key = get_master_key_for_source_entity(
-                    source_entity, master_rules)
-                try:
-                    master_entity = MasterEntity.objects.get(
-                        master_key=master_key)
-                    master_entity.source_entities.add(source_entity)
-                    for master_field in MasterField.objects.all():
-                        source_datas = []
-                        master_field_rules = master_rules[str(master_field.id)]
-                        if not master_field_rules:
-                            continue
-                        ordered_keys = sorted(list(master_field_rules.keys()))
-                        master_value = MasterValue()
-                        master_data = MasterData.objects.get(
-                            master_entity=master_entity, master_field=master_field)
-                        master_value.master_field = master_field
-                        master_value.value = ''
-                        for key in ordered_keys:
-                            source_field = SourceField.objects.get(
-                                pk=master_field_rules[key]['source_field'])
-                            source_data = SourceData.objects.get(
-                                source_entity=source_entity, source_field=source_field)
-                            if source_field.is_divided:
-                                part = master_field_rules[key]['part']
-                                try:
-                                    value = re.split(
-                                        source_field.delimiters, source_data.source_value.value)[part-1]
-                                except IndexError:
-                                    logger.warning(
-                                        f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
-                                    value = ''
-                                master_value.value += value
-                                master_value.value += master_field_rules[key]['ending']
-                            else:
-                                master_value.value += source_data.source_value.value
-                                master_value.value += master_field_rules[key]['ending']
-                            source_datas.append(source_data)
-                        master_value.master_data = master_data
-                        master_value.save()
-                        master_data.save()
-                        for data in source_datas:
-                            master_data.source_data.add(data)
-                            master_value.source_data.add(data)
-                        master_field.save()
-
-                except MasterEntity.DoesNotExist:
-                    master_entity = MasterEntity()
-                    master_entity.master_key = master_key
-                    master_entity.source = source
-                    master_entity.save()
-                    master_entity.source_entities.add(source_entity)
-                    stage4_post(source, source_entity, master_entity,
-                                master_fields, master_rules)
-            source.master_created = True
-            source.save()
-            return redirect('manage-masters')
+            task_id = uuid()
+            task_name = 'Masterdata Creation'
+            user = request.user
+            info = {
+                'task_name': task_name
+            }
+            task_result = TaskResult.objects.create(
+                    task_id=task_id,
+                    task_name=task_name)
+            task = Task.objects.create(
+                    task_id=task_id,
+                    task_result=task_result,
+                    user=user,
+                    info=json.dumps(info))
+            create_master_data.apply_async(
+                    (source.id,), 
+                    task_id=task_id)
+            return redirect('task-view', task_id)
         master_fields = MasterField.objects.all()
         example_table = create_example_table(source)
         instructions = 'Stage 4/4: Sample rows with given rules. Looks good?'
