@@ -15,10 +15,16 @@ class Source(models.Model):
     masterdata_stage = models.IntegerField(default=0)
     masterdata_rules = models.TextField(null=True, default=None)
 
+    class Meta:
+        default_related_name = 'sources'
+
 
 class SourceEntity(models.Model):
     source = models.ForeignKey(Source, on_delete=CASCADE)
     source_key = models.CharField(max_length=255, null=True, default=None)
+
+    class Meta:
+        default_related_name = 'source_entities'
 
 
 class SourceField(models.Model):
@@ -32,6 +38,7 @@ class SourceField(models.Model):
     num_of_mappings = models.IntegerField(default=1)
 
     class Meta:
+        default_related_name = 'source_fields'
         ordering = ["display_order"]
 
 
@@ -39,12 +46,18 @@ class SourceData(models.Model):
     source_entity = models.ForeignKey(SourceEntity, on_delete=CASCADE)
     source_field = models.ForeignKey(SourceField, on_delete=CASCADE)
 
+    class Meta:
+        default_related_name = 'source_datas'
+
 
 class SourceValue(models.Model):
     value = models.TextField()
     source_field = models.ForeignKey(SourceField, on_delete=CASCADE)
     source_data = models.OneToOneField(
         SourceData, on_delete=CASCADE, related_name='source_value')
+
+    class Meta:
+        default_related_name = 'source_values'
 
 
 class MasterEntity(models.Model):
@@ -54,6 +67,7 @@ class MasterEntity(models.Model):
     source_entities = models.ManyToManyField(SourceEntity)
 
     class Meta:
+        default_related_name = 'master_entities'
         ordering = ['master_key']
 
 
@@ -73,6 +87,7 @@ class MasterField(models.Model):
     access_level = models.IntegerField(choices=AccessLevels.choices, default=AccessLevels.GUEST)
 
     class Meta:
+        default_related_name = 'master_fields'
         ordering = ["display_order"]
 
 
@@ -81,12 +96,18 @@ class MasterData(models.Model):
     master_field = models.ForeignKey(MasterField, on_delete=CASCADE)
     source_data = models.ManyToManyField(SourceData)
 
+    class Meta:
+        default_related_name = 'master_datas'
+
 
 class MasterValue(models.Model):
     value = models.TextField()
     source_data = models.ManyToManyField(SourceData)
     master_field = models.ForeignKey(MasterField, on_delete=CASCADE)
     master_data = models.ForeignKey(MasterData, on_delete=CASCADE)
+
+    class Meta:
+        default_related_name = 'master_values'
 
 
 class EditComment(models.Model):
@@ -96,3 +117,7 @@ class EditComment(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     master_value = models.ForeignKey(
         MasterValue, on_delete=SET_NULL, null=True)
+
+    class Meta:
+        default_related_name = 'edit_comments'
+

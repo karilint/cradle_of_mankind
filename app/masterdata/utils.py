@@ -159,7 +159,7 @@ def stage4_post(source, source_entity, master_entity, master_fields, master_rule
 
 def get_selection_rules(source, master_fields):
     selection_rules = {}
-    for source_field in source.sourcefield_set.all():
+    for source_field in source.source_fields.all():
         if source_field.is_divided:
             selection_rules[source_field] = {}
             for part in range(1, source_field.num_of_parts+1):
@@ -245,7 +245,7 @@ def get_master_key_for_source_entity(source_entity, master_rules):
 
 
 def set_source_key_for_source_entity(source_entity):
-    key_fields = source_entity.source.sourcefield_set.filter(
+    key_fields = source_entity.source.source_fields.filter(
         is_primary_key=True)
     key_data = SourceData.objects.filter(
         source_entity=source_entity, source_field__is_primary_key=True)
@@ -273,7 +273,7 @@ def get_source_key(source_fields, row):
 
 def create_examples(source):
     examples = {}
-    source_entity = random.choice(source.sourceentity_set.all())
+    source_entity = random.choice(source.source_entities.all())
     entity_values = SourceValue.objects.filter(
         source_data__source_entity=source_entity).values_list('source_data__source_field', 'value')
     for field_id, value in entity_values:
@@ -286,7 +286,7 @@ def create_examples(source):
 
 def create_examples_with_parts(source):
     examples = {}
-    source_entity = random.choice(source.sourceentity_set.all())
+    source_entity = random.choice(source.source_entities.all())
     entity_values = SourceValue.objects.filter(
         source_data__source_entity=source_entity).values_list(
         'source_data__source_field__id',
@@ -319,9 +319,9 @@ def create_examples_with_parts(source):
 def create_example_table(source):
     rows = []
     source_entity_ids = list(
-        source.sourceentity_set.all().values_list('id', flat=True))
+        source.source_entities.all().values_list('id', flat=True))
     source_entity_ids = random.sample(source_entity_ids, 5)
-    source_entities = source.sourceentity_set.filter(pk__in=source_entity_ids)
+    source_entities = source.source_entities.filter(pk__in=source_entity_ids)
     for source_entity in source_entities:
         row = {}
         master_rules = json.loads(source.masterdata_rules)
@@ -375,7 +375,7 @@ def get_source_entity_data_for_master_entity(master_entity):
     data = {}
     for entity in master_entity.source_entities.all():
         entity_data = []
-        for field in entity.source.sourcefield_set.all():
+        for field in entity.source.source_fields.all():
             value = SourceData.objects.filter(
                 source_entity=entity, source_field=field).first().source_value.value
             entity_data.append(value)
@@ -387,7 +387,7 @@ def get_master_entity_data(entities, fields):
     for entity in entities:
         entity_data = []
         for field in fields:
-            master_data = MasterData.objects.filter(
+            master_data = MasterData.objects.prefetch_related('master_values').filter(
                 master_entity=entity, master_field=field).first()
             entity_data.append(master_data)
         data[entity] = entity_data
@@ -578,7 +578,7 @@ def save_data(source, source_fields):
         data = DictReader(f, delimiter=delimiter)
         print(f"Processing... ({rows} rows)")
         source_fields = {}
-        for field in source.sourcefield_set.all():
+        for field in source.source_fields.all():
             source_fields[field.name] = field
         source_entity_objs = []
         source_data_objs = []

@@ -2,7 +2,7 @@ import json
 import re
 import csv
 from cradle_of_mankind.settings import MEDIA_ROOT
-from cradle_of_mankind.decorators import remember_last_query_params
+from cradle_of_mankind.decorators import remember_last_query_params, query_debugger
 from django.contrib import messages
 from django.http import HttpResponse, StreamingHttpResponse
 from users.views import user_is_data_admin
@@ -29,6 +29,8 @@ from .models import (
 import logging
 
 logger = logging.getLogger(__name__)
+
+from django.db import connection, reset_queries
 
 
 @remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive', 'page-size', ])
@@ -84,7 +86,7 @@ def manage_masters(request):
 @transaction.atomic
 def create_master(request, source_pk, stage):
     source = Source.objects.get(pk=source_pk)
-    source_fields = source.sourcefield_set.all()
+    source_fields = source.source_fields.all()
     title = "Create Master"
 
     if stage == 1:
@@ -174,8 +176,8 @@ def create_master(request, source_pk, stage):
 def edit_master(request, source_pk, stage):
     source = Source.objects.get(pk=source_pk)
     source_field_ids = []
-    for source_field in source.sourcefield_set.all():
-        if len(source_field.sourcedata_set.first().masterdata_set.all()) == 0:
+    for source_field in source.source_fields.all():
+        if len(source_field.source_datas.first().master_datas.all()) == 0:
             source_field_ids.append(source_field.id)
     source_fields = SourceField.objects.filter(pk__in=source_field_ids)
     title = "Edit Master"
@@ -239,7 +241,7 @@ def edit_master(request, source_pk, stage):
         if request.method == 'POST':
             master_rules = json.loads(source.masterdata_rules)
             master_fields = MasterField.objects.exclude(sources=source)
-            for source_entity in source.sourceentity_set.all():
+            for source_entity in source.source_entities.all():
                 master_entity = MasterEntity.objects.get(
                     source_entity=source_entity)
             stage4_post(source, source_entity, master_entity,
@@ -271,10 +273,10 @@ def delete_master(request, source_pk):
 
         source_entities = SourceEntity.objects.filter(source=source)
         for source_entity in source_entities:
-            source_entity.masterentity_set.clear()
+            source_entity.master_entities.clear()
         source_data = SourceData.objects.filter(source_entity__source=source)
         for data in source_data:
-            data.masterdata_set.clear()
+            data.master_datas.clear()
 
         source.master_created = False
         source.masterdata_stage = 0
@@ -332,7 +334,7 @@ def master_field_edit(request, master_field_pk):
 def master_field_delete(request, master_field_pk):
     master_field = MasterField.objects.get(pk=master_field_pk)
     if request.method == 'POST':
-        if len(master_field.masterdata_set.all()) == 0 and len(master_field.mastervalue_set.all()) == 0:
+        if len(master_field.master_datas.all()) == 0 and len(master_field.master_values.all()) == 0:
             master_field.delete()
             messages.success(
                 request, "The master field was deleted succesfully!")
@@ -394,7 +396,9 @@ def source_list(request):
 @login_required
 @user_passes_test(user_is_data_admin)
 @remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive', 'page-size', ])
+@query_debugger
 def master_list(request):
+    reset_queries()
     master_sources = get_master_sources()
     if len(master_sources) < 1:
         if len(Source.objects.all()) < 1:
@@ -410,12 +414,16 @@ def master_list(request):
     case_sensitive = request.GET.get('case-sensitive', default='yes')
     page_size = request.GET.get('page-size', default=15)
     user_level = get_user_access_level(request)
+    print(len(connection.queries))
     master_fields = MasterField.objects.filter(
         access_level__lte=user_level).exclude(display_order=None)
+    print(len(connection.queries))
     master_entities = get_master_entities_page(
         request, search, matching, case_sensitive, page_size)
+    print(len(connection.queries))
     master_entity_data = get_master_entity_data(
         master_entities, master_fields)
+    print(len(connection.queries))
     context = {
         'selection_value': request.GET.get('source'),
         'master_sources': master_sources,
@@ -432,7 +440,6 @@ def master_list(request):
         context['search'] = ''
         context['matching'] = 'exact'
         context['case_sensitive'] = 'yes'
-
     return render(request, 'masterdata/master_list.html', context)
 
 
@@ -486,7 +493,7 @@ def master_entity_edit(request, master_entity_pk, source_entity_pk, master_field
 
     master_entity = MasterEntity.objects.get(pk=master_entity_pk)
     source_entity = SourceEntity.objects.get(pk=source_entity_pk)
-    comments = master_value.editcomment_set.all()
+    comments = master_value.edit_comments.all()
     return render(request, 'masterdata/master_entity_edit.html',
                   {'master_value': master_value,
                    'master_entity': master_entity,
@@ -505,8 +512,8 @@ def master_entity_merge(request, master_entity_pk, source_entity_pk):
     if request.method == 'POST':
         new_master_entity = MasterEntity.objects.get(
             pk=request.POST['master_entity_select'])
-        for data in source_entity.sourcedata_set.all():
-            data.masterdata_set.clear()
+        for data in source_entity.source_datas.all():
+            data.masterdatas.clear()
         for master_field in MasterField.objects.all():
             master_value = MasterValue.objects.filter(
                 master_data__master_entity=master_entity,
@@ -519,7 +526,7 @@ def master_entity_merge(request, master_entity_pk, source_entity_pk):
             master_value.master_data = new_master_data
             master_value.save()
 
-        source_entity.masterentity_set.clear()
+        source_entity.master_entities.clear()
         new_master_entity.source_entities.add(source_entity)
         if len(MasterValue.objects.filter(master_data__master_entity=master_entity)) == 0:
             master_entity.delete()
@@ -543,10 +550,10 @@ def master_entity_split(request, master_entity_pk, source_entity_pk):
         new_master_entity.master_key = get_master_key_for_source_entity(
             source_entity, master_rules)
         new_master_entity.hidden_key = len(
-            source_entity.masterentity_set.all())
+            source_entity.master_entities.all())
         new_master_entity.save()
-        for data in source_entity.sourcedata_set.all():
-            data.masterdata_set.clear()
+        for data in source_entity.source_datas.all():
+            data.master_datas.clear()
         for master_field in MasterField.objects.all():
             master_value = MasterValue.objects.filter(
                 master_data__master_entity=master_entity,
@@ -561,7 +568,7 @@ def master_entity_split(request, master_entity_pk, source_entity_pk):
             master_value.master_data = master_data
             master_value.save()
 
-        source_entity.masterentity_set.clear()
+        source_entity.master_entities.clear()
         new_master_entity.source_entities.add(source_entity)
         return redirect('master-list')
 

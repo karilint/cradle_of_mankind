@@ -20,6 +20,6 @@ def to_string(master_data):
     """
 
     values = set()
-    for master_value in master_data.mastervalue_set.all():
+    for master_value in master_data.master_values.all():
         values.add(master_value.value)
     return ' | '.join(values)

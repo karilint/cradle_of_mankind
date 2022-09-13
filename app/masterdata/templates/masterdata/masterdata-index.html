@@ -92,13 +92,13 @@
             <tr class="w3-center highlight">
               {% for data_value in master_entity_data|get_item:entity %}
                 <td class="w3-center">
-                {% if data_value.mastervalue_set.all|length > 1 %}
+                {% if data_value.master_values.all|length > 1 %}
                   <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">
                     {{ data_value|to_string }}
                   </a>
                 {% else %}
                   {% if data_value %}
-                    <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">{{ data_value.mastervalue_set.first.value }}</a>
+                    <a style="display: block; width: 100%; height: 100%; text-decoration: none;" href="{% url 'master-entity-view' data_value.master_entity.id %}">{{ data_value.master_values.first.value }}</a>
                   {% endif %}
                 {% endif %}
                 </td>

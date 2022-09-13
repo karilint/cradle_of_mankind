@@ -110,8 +110,8 @@ def create_master_data(self, source_id):
         source = Source.objects.get(id=source_id)
         master_rules = json.loads(source.masterdata_rules)
         master_fields = MasterField.objects.all()
-        total_work = source.sourceentity_set.count()
-        for counter, source_entity in enumerate(source.sourceentity_set.all(), 1):
+        total_work = source.source_entities.count()
+        for counter, source_entity in enumerate(source.source_entities.all(), 1):
             logger.debug(f"Masterdata progress: {counter} of {total_work}")
             master_key = get_master_key_for_source_entity(
                 source_entity, master_rules)
