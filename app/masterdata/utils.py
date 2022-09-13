@@ -264,11 +264,6 @@ def get_source_key(source_fields, row):
         if field.is_primary_key:
             key_field_values.append(row[field.name])
     return '-'.join(key_field_values)
-    # key_fields = source.sourcefield_set.filter(is_primary_key=True)
-    # key_field_values = []
-    # for field in key_fields:
-    #     key_field_values.append(row[field.name])
-    # return '-'.join(key_field_values)
 
 
 def create_examples(source):
