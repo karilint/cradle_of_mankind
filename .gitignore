@@ -1,7 +1,7 @@
 .env*
-nginx/certs/cert.pem
-nginx/certs/key.pem
-nginx/certs/dhparam.pem
+nginx/certbot/*
+nginx/certs/*
+!nginx/certs/.keep
 
 .vscode/
 database.cnf
