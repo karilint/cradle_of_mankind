@@ -3,13 +3,14 @@
 
 {% block content %}
 
-  <h3>Are you sure you want to split Master entity ({{master_entity.id}}) from Source Entity ({{source_entity.id}})?</h3>
-  <h3>This will create a new master entity for the source entity.</h3>
+  <h3>Confirm the split operation</h3>
+  <!-- <h3>Are you sure you want to split the selected part from its master entity?</h3> -->
+  <!-- <h3>This will create a new master entity.</h3> -->
 
   <form class="w3-container w3-padding" method="POST">
     {% csrf_token %}
     <button class="w3-btn w3-green w3-round-large" type="submit">Confirm</button>
-    <a href="{% url 'master-entity-view' master_entity.id %}" class="w3-btn w3-red w3-round-large">Cancel</a>
+    <a href="{% url 'master-entity-view' master_entity_pk %}" class="w3-btn w3-red w3-round-large">Cancel</a>
   </form>
 
 {% endblock content %}

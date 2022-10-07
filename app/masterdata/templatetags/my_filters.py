@@ -13,13 +13,24 @@ def _split(string):
     return string.split()
 
 
+@register.filter(name='getattr')
+def _getattr(obj, attr):
+    if not obj:
+        return ''
+    return getattr(obj, attr)
+
+
 @register.filter(name='to_string')
 def to_string(master_data):
-    """Takes a master data object and returns a string where all the 
-    unique master values have been combined together with '|' symbol.
+    """Takes a master data object (or list of them) and returns 
+    a string where all their unique values have been combined.
     """
 
+    if not isinstance(master_data, list):
+        print(master_data)
+        return master_data.value.value
     values = set()
-    for master_value in master_data.master_values.all():
-        values.add(master_value.value)
+    for md in master_data:
+        if md.value.value:
+            values.add(md.value.value)
     return ' | '.join(values)

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load my_filters %}
 {% load crispy_forms_tags %}
 {% load static %}
 
@@ -31,8 +32,8 @@
           <tr class="w3-center">
             <td class="w3-center highlight"><a style="text-decoration: none;" href="{% url 'source-view' entity.source.id %}">{{entity.source.name}}</a></td>
             <td class="w3-center">{{entity.id}}</td>
-            {% for master_value in master_entity_data|get_item:entity %}
-              <td class="w3-center">{{master_value.value}}</td>
+            {% for master_field in master_fields %}
+              <td class="w3-center">{{master_data_dict|get_item:entity.id|get_item:master_field.id|getattr:'value'|getattr:'value'}}</td>
             {% endfor %}
             {% if user.is_data_admin %}
               <td><span><a href="{% url 'master-entity-choose-edit' master_entity.id entity.id %}"><i class="material-icons highlight">edit</i></a></span></td>

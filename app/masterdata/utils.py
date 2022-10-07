@@ -9,20 +9,21 @@ import os
 import re
 import random
 from .models import (
-    MasterData,
-    MasterEntity,
-    MasterValue,
     Source,
-    SourceData,
     SourceEntity,
     SourceField,
-    SourceValue,
-    MasterField
+    SourceData,
+    MasterEntity,
+    MasterField,
+    MasterData,
+    Value,
 )
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+from django.db import connection, reset_queries
 
 
 def get_user_access_level(request):
@@ -157,6 +158,66 @@ def stage4_post(source, source_entity, master_entity, master_fields, master_rule
         master_field.save()
 
 
+def get_master_value(source, source_entity, master_field, 
+                     source_field_dict=None, source_data_dict=None):
+    master_rules = json.loads(source.masterdata_rules)
+    master_field_rules = master_rules[str(master_field.id)]
+    if not master_field_rules:
+        return ''
+    ordered_keys = sorted(list(master_field_rules.keys()))
+    master_value = ''
+    for key in ordered_keys:
+        if source_field_dict:
+            source_field = source_field_dict[master_field_rules[key]['source_field']]
+        else:
+            source_field = SourceField.objects.get(
+                pk=master_field_rules[key]['source_field'])
+        if source_data_dict:
+            source_data = source_data_dict[source_entity.id][source_field.id]
+        else:
+            source_data = SourceData.objects.select_related('value').get(
+                source_entity=source_entity, source_field=source_field)
+        if source_field.is_divided:
+            part = master_field_rules[key]['part']
+            try:
+                value = re.split(
+                    source_field.delimiters, source_data.value.value)[part-1]
+            except IndexError:
+                logger.warning(
+                    f'Splitting not possible. Tried to get part {part} of "{source_data.value.value}". Using Empty string.')
+                value = ''
+            master_value += value
+            master_value += master_field_rules[key]['ending']
+        else:
+            master_value += source_data.value.value
+            master_value += master_field_rules[key]['ending']
+    return master_value
+
+
+def get_master_source_data_ids(source, source_entity, master_field, 
+                               source_field_dict=None, source_data_dict=None):
+    source_data_ids = set()
+    master_rules = json.loads(source.masterdata_rules)
+    master_field_rules = master_rules[str(master_field.id)]
+    if not master_field_rules:
+        return {}
+    ordered_keys = sorted(list(master_field_rules.keys()))
+    for key in ordered_keys:
+        if source_field_dict:
+            source_field = source_field_dict[master_field_rules[key]['source_field']]
+        else:
+            source_field = SourceField.objects.get(
+                pk=master_field_rules[key]['source_field'])
+        if source_data_dict:
+            source_data = source_data_dict[source_entity.id][source_field.id]
+        else:
+            source_data = SourceData.objects.select_related('value').get(
+                source_entity=source_entity, source_field=source_field)
+        source_data_ids.add(source_data.id)
+    return source_data_ids
+
+
+
 def get_selection_rules(source, master_fields):
     selection_rules = {}
     for source_field in source.source_fields.all():
@@ -225,23 +286,34 @@ def get_master_key_for_source_entity(source_entity, master_rules):
         for key in ordered_keys:
             source_field = SourceField.objects.get(
                 pk=master_field_rules[key]['source_field'])
-            source_data = SourceData.objects.get(
+            source_data = SourceData.objects.select_related('value').get(
                 source_entity=source_entity, source_field=source_field)
             if source_field.is_divided:
                 part = master_field_rules[key]['part']
                 try:
                     value = re.split(
-                        source_field.delimiters, source_data.source_value.value)[part-1]
+                        source_field.delimiters, source_data.value.value)[part-1]
                 except IndexError:
                     logger.warning(
-                        f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
+                        f'Splitting not possible. Tried to get part {part} of "{source_data.value.value}". Using Empty string.')
                     value = ''
                 master_key += value
                 master_key += master_field_rules[key]['ending']
             else:
-                master_key += source_data.source_value.value
+                master_key += source_data.value.value
                 master_key += master_field_rules[key]['ending']
     return master_key
+
+
+def get_hidden_key(master_entity):
+    other_hidden_keys = (
+        MasterEntity.objects.filter(master_key=master_entity.master_key)
+        .values_list('hidden_key', flat=True)
+    )
+    i = 0
+    while i in other_hidden_keys:
+        i += 1
+    return i
 
 
 def set_source_key_for_source_entity(source_entity):
@@ -269,8 +341,8 @@ def get_source_key(source_fields, row):
 def create_examples(source):
     examples = {}
     source_entity = random.choice(source.source_entities.all())
-    entity_values = SourceValue.objects.filter(
-        source_data__source_entity=source_entity).values_list('source_data__source_field', 'value')
+    entity_values = (Value.objects.filter( source_datas__source_entity=source_entity)
+                                  .values_list('source_datas__source_field', 'value'))
     for field_id, value in entity_values:
         if len(value) > 30:
             examples[field_id] = value[:30] + '...'
@@ -282,12 +354,12 @@ def create_examples(source):
 def create_examples_with_parts(source):
     examples = {}
     source_entity = random.choice(source.source_entities.all())
-    entity_values = SourceValue.objects.filter(
-        source_data__source_entity=source_entity).values_list(
-        'source_data__source_field__id',
-        'source_data__source_field__is_divided',
-        'source_data__source_field__delimiters',
-        'source_data__source_field__num_of_parts',
+    entity_values = Value.objects.filter(
+        source_datas__source_entity=source_entity).values_list(
+        'source_datas__source_field__id',
+        'source_datas__source_field__is_divided',
+        'source_datas__source_field__delimiters',
+        'source_datas__source_field__num_of_parts',
         'value')
     for field_id, is_divided, delimiters, num_of_parts, value in entity_values:
         if is_divided:
@@ -315,36 +387,25 @@ def create_example_table(source):
     rows = []
     source_entity_ids = list(
         source.source_entities.all().values_list('id', flat=True))
-    source_entity_ids = random.sample(source_entity_ids, 5)
+    source_entity_ids = random.sample(source_entity_ids, 10)
     source_entities = source.source_entities.filter(pk__in=source_entity_ids)
+    source_fields = SourceField.objects.filter(source=source)
+    master_fields = MasterField.objects.all()
+    source_datas = (SourceData.objects
+            .select_related('value')
+            .filter(source_entity_id__in=source_entity_ids))
+    source_data_dict = get_queryset_dict(source_datas, 'source_entity_id')
+    for k, v in source_data_dict.items():
+        if isinstance(v, list):
+            source_data_dict[k] = {obj.source_field_id: obj for obj in v}
+            continue
+        source_data_dict[k] = {v.source_field_id: v}
+    source_field_dict = get_queryset_dict(source_fields)
     for source_entity in source_entities:
         row = {}
-        master_rules = json.loads(source.masterdata_rules)
-        for master_field in MasterField.objects.all():
-            master_field_rules = master_rules[str(master_field.id)]
-            ordered_keys = sorted(list(master_field_rules.keys()))
-            master_value = ''
-            for key in ordered_keys:
-                source_field = SourceField.objects.get(
-                    pk=master_field_rules[key]['source_field'])
-                source_data = SourceData.objects.get(
-                    source_entity=source_entity, source_field=source_field)
-                if not source_data.source_value.value:
-                    continue
-                if source_field.is_divided:
-                    part = master_field_rules[key]['part']
-                    try:
-                        value = re.split(source_field.delimiters,
-                                         source_data.source_value.value)[part-1]
-                    except IndexError:
-                        logger.warning(
-                            f'Splitting not possible. Tried to get part {part} of "{source_data.source_value.value}". Using Empty string.')
-                        value = ''
-                    master_value += value
-                    master_value += master_field_rules[key]['ending']
-                else:
-                    master_value += source_data.source_value.value
-                    master_value += master_field_rules[key]['ending']
+        for master_field in master_fields:
+            master_value = get_master_value(source, source_entity,
+                    master_field, source_field_dict, source_data_dict)
             row[master_field] = master_value
         rows.append(row)
     return rows
@@ -355,14 +416,15 @@ def get_master_sources():
 
 
 def get_source_entity_data(entities, fields):
+    """Returns a dictionary containing lists of values for each entity.
+    Dictionary keys are entity ids. Dictionary values are lists of entity's data values."""
     data = {}
-    for entity in entities:
-        entity_data = []
-        for field in fields:
-            value = SourceData.objects.filter(
-                source_entity=entity, source_field=field).first().source_value.value
-            entity_data.append(value)
-        data[entity] = entity_data
+    raw_data = (Value.objects.filter(source_datas__source_entity__in=entities)
+                             .order_by('source_datas__source_field__id')
+                             .values_list('source_datas__source_entity', 'value'))
+    for entity_id, value in raw_data:
+        data.setdefault(entity_id, [])
+        data[entity_id].append(value)
     return data
 
 
@@ -377,12 +439,14 @@ def get_source_entity_data_for_master_entity(master_entity):
         data[entity] = entity_data
 
 
-def get_master_entity_data(entities, fields):
+def get_master_entity_data(master_entities, master_fields):
     data = {}
-    for entity in entities:
+    master_datas = MasterData.objects.filter(master_entity__in=master_entities)
+    master_data_dict = get_queryset_dict()
+    for master_entity in master_entities:
         entity_data = []
-        for field in fields:
-            master_data = MasterData.objects.prefetch_related('master_values').filter(
+        for master_field in master_fields:
+            master_datas = MasterData.objects.select_related('value').filter(
                 master_entity=entity, master_field=field).first()
             entity_data.append(master_data)
         data[entity] = entity_data
@@ -393,8 +457,11 @@ def get_separated_master_entity_data(master_entity, master_fields, source_entiti
     data = {}
     for source_entity in source_entities:
         entity_data = []
-        master_values = MasterValue.objects.filter(
+        values = Value.objects.filter(
             source_data__source_entity=source_entity).distinct()
+        master_datas = (MasterData.objects
+            .filter(source_datas__source_entity=source_entity)
+            .distinct())
         for field in master_fields:
             master_value = master_values.get(master_field=field)
             entity_data.append(master_value)
@@ -416,7 +483,7 @@ def get_source(request):
 
 
 def get_source_entities(request, source, size=15):
-    source_entities = SourceEntity.objects.filter(source=source)
+    source_entities = SourceEntity.objects.filter(source=source).order_by('id')
     page = request.GET.get('page', 1)
     paginator = Paginator(source_entities, size)
     try:
@@ -524,108 +591,33 @@ def get_source_fields(source):
     return source_fields
 
 
-def save_data_old(source):
-    delimiter = source.delimiter
-    with open(source.source_file.path, encoding='utf8') as f:
-        data = DictReader(f)
-        rows = 0
-        for row in data:
-            rows += 1
-        f.seek(0)
-        data = DictReader(f, delimiter=delimiter)
-        print(f"Processing... ({rows} rows)")
-        for index, row in enumerate(data, 1):
-            print_progress(index, rows)
+def get_queryset_dict(queryset, key_field='pk', inner_dict_key=None):
+    """Returns a dictionary of given queryset's objects.
 
-            source_entity = SourceEntity()
-            source_entity.source = source
-            source_entity.save()
-
-            for field in row.keys():
-                source_field = SourceField.objects.filter(
-                    source=source).get(name=field)
-
-                source_data = SourceData()
-                source_data.source_entity = source_entity
-                source_data.source_field = source_field
-                source_data.save()
-
-                source_value = SourceValue()
-                source_value.value = row[field]
-                source_value.source_field = source_field
-                source_value.source_data = source_data
-                source_value.save()
-
-            set_source_key_for_source_entity(source_entity)
-
-
-@transaction.atomic
-def save_data(source, source_fields):
-    source.save()
-    SourceField.objects.bulk_create(source_fields)
-    delimiter = source.delimiter
-    with open(source.source_file.path, encoding='utf8') as f:
-        data = DictReader(f)
-        rows = 0
-        for row in data:
-            rows += 1
-        f.seek(0)
-        data = DictReader(f, delimiter=delimiter)
-        print(f"Processing... ({rows} rows)")
-        source_fields = {}
-        for field in source.source_fields.all():
-            source_fields[field.name] = field
-        source_entity_objs = []
-        source_data_objs = []
-        source_value_objs = []
-        print("Creating source entities...")
-        for index, row in enumerate(data):
-            print_progress(index+1, rows)
-            source_entity = SourceEntity()
-            source_entity.source_key = get_source_key(source, row)
-            source_entity.source = source
-            source_entity_objs.append(source_entity)
-        print('Saving to database...')
-        source_entities = SourceEntity.objects.bulk_create(
-            source_entity_objs, batch_size=5000)
-
-        f.seek(0)
-        data = DictReader(f, delimiter=delimiter)
-        print("Creating source data...")
-        for index, row in enumerate(data):
-            print_progress(index+1, rows)
-            source_entity = source_entities[index]
-            for field in row.keys():
-                source_field = source_fields[field]
-                source_data = SourceData()
-                source_data.source_entity = source_entity
-                source_data.source_field = source_field
-                source_data_objs.append(source_data)
-        print('Saving to database...')
-        SourceData.objects.bulk_create(source_data_objs, batch_size=5000)
-
-        source_datas = {}
-        for source_data in list(SourceData.objects.filter(source_entity__source=source).distinct()):
-            inner_dict = source_datas.setdefault(
-                source_data.source_entity_id, {})
-            inner_dict[source_data.source_field_id] = source_data
-        f.seek(0)
-        data = DictReader(f, delimiter=delimiter)
-        print("Creating source values...")
-        for index, row in enumerate(data):
-            print_progress(index+1, rows)
-            source_entity = source_entities[index]
-            for field in row.keys():
-                source_field = source_fields[field]
-                source_data = source_datas[source_entity.id][source_field.id]
-                source_value = SourceValue()
-                source_value.value = row[field].strip()
-                source_value.source_field = source_field
-                source_value.source_data = source_data
-                source_value_objs.append(source_value)
-        print("Saving to database...")
-        SourceValue.objects.bulk_create(source_value_objs, batch_size=5000)
-        print("Done.")
+    Keyword arguments:
+    queryset -- queryset whose objects used as dict values
+    key_field -- the field(s) used as a dict key (default 'pk')
+    inner_dict_key -- key used to create inner dictionary (default None)
+    """
+    dictionary = {}
+    for obj in queryset:
+        key_value = getattr(obj, key_field)
+        if key_value in dictionary:
+            dict_value = dictionary[key_value]
+            if isinstance(dict_value, list):
+                dictionary[key_value].append(obj)
+                continue
+            dict_value = [dict_value, obj]
+            dictionary[key_value] = dict_value
+            continue
+        dictionary[key_value] = obj
+    if inner_dict_key:
+        for k, v in dictionary.items():
+            if isinstance(v, list):
+                dictionary[k] = get_queryset_dict(v, inner_dict_key)
+                continue
+            dictionary[k] = {getattr(v, inner_dict_key): v}
+    return dictionary
 
 
 def get_rows(search, matching, case_sensitive):
@@ -665,4 +657,5 @@ def set_primary_keys(request_post, source_fields):
     for source_field in source_fields:
         if request_post[source_field.name] == 'True':
             source_field.is_primary_key = True
-            
+
+

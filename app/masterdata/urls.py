@@ -1,26 +1,5 @@
 from django.urls import path
-from .views import (
-    export_to_csv,
-    import_source_data_view,
-    index,
-    manage_masters,
-    master_entity_choose_edit,
-    master_entity_edit,
-    master_entity_merge,
-    master_entity_split,
-    master_entity_view,
-    master_field_delete,
-    master_field_edit,
-    import_new_source,
-    master_field_edit_display_order,
-    master_fields, master_list,
-    source_list,
-    edit_master,
-    create_master,
-    delete_master,
-    update_existing_source,
-    source_view
-)
+from .views import *
 
 urlpatterns = [
     path('import/', import_source_data_view, name='import-source-data'),
@@ -30,9 +9,10 @@ urlpatterns = [
     path('manage/', manage_masters, name='manage-masters'),
     path('create/<int:source_pk>/stage-<int:stage>',
          create_master, name='create-master'),
-    path('delete/<int:source_pk>', delete_master, name='delete-master'),
-    path('edit/<int:source_pk>/stage-<int:stage>',
-         edit_master, name='edit-master'),
+    path('delete/<int:source_pk>', delete_master_view, name='delete-master'),
+    # NOT WORKING BECAUSE MODEL EDITS
+    # path('edit/<int:source_pk>/stage-<int:stage>',
+    #      edit_master, name='edit-master'),
     path('master-fields/', master_fields, name='master-fields'),
     path('master-fields/edit/<int:master_field_pk>',
          master_field_edit, name='master-field-edit'),

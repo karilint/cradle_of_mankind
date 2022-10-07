@@ -3,6 +3,9 @@ import re
 import csv
 from cradle_of_mankind.settings import MEDIA_ROOT
 from cradle_of_mankind.decorators import remember_last_query_params, query_debugger
+from django.db import transaction
+from django.db.models.functions import Cast
+from django.db.models import IntegerField
 from django.contrib import messages
 from django.http import HttpResponse, StreamingHttpResponse
 from users.views import user_is_data_admin
@@ -13,17 +16,17 @@ from celery import uuid
 from django_celery_results.models import TaskResult
 
 from .forms import MasterFieldForm, SourceDataImportForm
-from .tasks import import_source_data, create_master_data
+from .tasks import import_source_data, create_master_data, delete_master
 from .utils import *
 from .models import (
-    EditComment,
-    MasterData,
-    MasterEntity,
-    MasterValue,
     Source,
-    SourceData,
     SourceField,
-    MasterField
+    SourceData,
+    MasterEntity,
+    MasterField,
+    MasterData,
+    Value,
+    EditComment,
 )
 
 import logging
@@ -41,18 +44,21 @@ def index(request):
     case_sensitive = request.GET.get('case-sensitive', default='yes')
     page_size = request.GET.get('page-size', default=15)
     user_level = get_user_access_level(request)
-    master_fields = MasterField.objects.filter(access_level__lte=user_level
-                                               ).exclude(display_order=None)
-    show_table = len(MasterEntity.objects.all()) > 0
+    show_table = MasterEntity.objects.count() > 0
+    master_fields = MasterField.objects.filter(
+        access_level__lte=user_level).exclude(display_order=None)
     master_entities = get_master_entities_page(
         request, search, matching, case_sensitive, page_size)
-    master_entity_data = get_master_entity_data(
-        master_entities, master_fields)
+    master_datas = (MasterData.objects
+                              .select_related('value')
+                              .filter(master_entity__in=master_entities))
+    master_data_dict = get_queryset_dict(master_datas, 
+            'master_entity_id', 'master_field_id')
     context = {
         'selection_value': request.GET.get('source'),
         'master_sources': master_sources,
         'master_fields': master_fields,
-        'master_entity_data': master_entity_data,
+        'master_data_dict': master_data_dict,
         'page_obj': master_entities,
         'page_size': page_size,
         'show_table': show_table,
@@ -65,7 +71,6 @@ def index(request):
         context['search'] = ''
         context['matching'] = 'exact'
         context['case_sensitive'] = 'yes'
-
     return render(request, 'masterdata/masterdata-index.html', context)
 
 
@@ -171,120 +176,119 @@ def create_master(request, source_pk, stage):
                        'example_table': example_table})
 
 
+# NOT WORKING BECAUSE OF MODEL CHANGES
+# @login_required
+# @user_passes_test(user_is_data_admin)
+# def edit_master(request, source_pk, stage):
+#     source = Source.objects.get(pk=source_pk)
+#     source_field_ids = []
+#     for source_field in source.source_fields.all():
+#         if len(source_field.source_datas.first().master_datas.all()) == 0:
+#             source_field_ids.append(source_field.id)
+#     source_fields = SourceField.objects.filter(pk__in=source_field_ids)
+#     title = "Edit Master"
+#
+#     if stage == 1:
+#         if request.method == 'POST':
+#             stage1_post(request, source, source_fields, stage)
+#             return redirect('edit-master', source_pk, stage+1)
+#         examples = create_examples(source)
+#         instructions = "Stage 1/4: Choose which fields need to be divided into parts "\
+#                        "(only the fields that haven't been mapped yet are shown)."
+#         return render(request, 'masterdata/create_master_stage1.html',
+#                       {'title': title,
+#                        'instructions': instructions,
+#                        'source': source,
+#                        'source_fields': source_fields,
+#                        'examples': examples})
+#
+#     elif stage == 2:
+#         source_fields = source_fields.filter(is_divided=True)
+#         if request.method == 'POST':
+#             stage2_post(request, source, source_fields, stage)
+#             next_stage = stage+1 if "next" in request.POST else stage-1
+#             return redirect('edit-master', source_pk, next_stage)
+#         examples = create_examples(source)
+#         instructions = 'Stage 2/4: Give delimiters that will be used to divide the source fields you want to be in masterdata.'
+#         return render(request, 'masterdata/create_master_stage2.html',
+#                       {'title': title,
+#                        'instructions': instructions,
+#                        'source': source,
+#                        'source_fields': source_fields,
+#                        'examples': examples})
+#
+#     elif stage == 3:
+#         master_fields = MasterField.objects.exclude(sources=source)
+#         if request.method == 'POST':
+#             if source.masterdata_rules:
+#                 masterdata_rules = json.loads(source.masterdata_rules)
+#             else:
+#                 masterdata_rules = {}
+#                 for master_field in MasterField.objects.all():
+#                     masterdata_rules[master_field.id] = {}
+#             stage3_post(request, source, source_fields,
+#                         masterdata_rules, stage)
+#             next_stage = stage+1 if 'next' in request.POST else stage-1
+#             return redirect('edit-master', source_pk, next_stage)
+#         selection_rules = get_selection_rules(
+#             source, master_fields)
+#         examples = create_examples_with_parts(source)
+#         instructions = 'Stage 3/4: Assign rules for master field mapping.'
+#         return render(request, 'masterdata/create_master_stage3.html',
+#                       {'title': title,
+#                        'instruction': instructions,
+#                        'source': source,
+#                        'source_fields': source_fields,
+#                        'master_fields': master_fields,
+#                        'rules': selection_rules,
+#                        'examples': examples})
+#
+#     elif stage == 4:
+#         if request.method == 'POST':
+#             master_rules = json.loads(source.masterdata_rules)
+#             master_fields = MasterField.objects.exclude(sources=source)
+#             for source_entity in source.source_entities.all():
+#                 master_entity = MasterEntity.objects.get(
+#                     source_entity=source_entity)
+#             stage4_post(source, source_entity, master_entity,
+#                         master_fields, master_rules)
+#             source.master_created = True
+#             source.save()
+#             return redirect('manage-masters')
+#         master_fields = MasterField.objects.all()
+#         example_table = create_example_table(source)
+#         instructions = 'Stage 4/4: Sample rows with given rules. Looks good?'
+#         return render(request, 'masterdata/create_master_stage4.html',
+#                       {'title': title,
+#                        'instructions': instructions,
+#                        'source': source,
+#                        'master_fields': master_fields,
+#                        'example_table': example_table})
+
+
 @login_required
 @user_passes_test(user_is_data_admin)
-def edit_master(request, source_pk, stage):
-    source = Source.objects.get(pk=source_pk)
-    source_field_ids = []
-    for source_field in source.source_fields.all():
-        if len(source_field.source_datas.first().master_datas.all()) == 0:
-            source_field_ids.append(source_field.id)
-    source_fields = SourceField.objects.filter(pk__in=source_field_ids)
-    title = "Edit Master"
-
-    if stage == 1:
-        if request.method == 'POST':
-            stage1_post(request, source, source_fields, stage)
-            return redirect('edit-master', source_pk, stage+1)
-        examples = create_examples(source)
-        instructions = "Stage 1/4: Choose which fields need to be divided into parts "\
-                       "(only the fields that haven't been mapped yet are shown)."
-        return render(request, 'masterdata/create_master_stage1.html',
-                      {'title': title,
-                       'instructions': instructions,
-                       'source': source,
-                       'source_fields': source_fields,
-                       'examples': examples})
-
-    elif stage == 2:
-        source_fields = source_fields.filter(is_divided=True)
-        if request.method == 'POST':
-            stage2_post(request, source, source_fields, stage)
-            next_stage = stage+1 if "next" in request.POST else stage-1
-            return redirect('edit-master', source_pk, next_stage)
-        examples = create_examples(source)
-        instructions = 'Stage 2/4: Give delimiters that will be used to divide the source fields you want to be in masterdata.'
-        return render(request, 'masterdata/create_master_stage2.html',
-                      {'title': title,
-                       'instructions': instructions,
-                       'source': source,
-                       'source_fields': source_fields,
-                       'examples': examples})
-
-    elif stage == 3:
-        master_fields = MasterField.objects.exclude(sources=source)
-        if request.method == 'POST':
-            if source.masterdata_rules:
-                masterdata_rules = json.loads(source.masterdata_rules)
-            else:
-                masterdata_rules = {}
-                for master_field in MasterField.objects.all():
-                    masterdata_rules[master_field.id] = {}
-            stage3_post(request, source, source_fields,
-                        masterdata_rules, stage)
-            next_stage = stage+1 if 'next' in request.POST else stage-1
-            return redirect('edit-master', source_pk, next_stage)
-        selection_rules = get_selection_rules(
-            source, master_fields)
-        examples = create_examples_with_parts(source)
-        instructions = 'Stage 3/4: Assign rules for master field mapping.'
-        return render(request, 'masterdata/create_master_stage3.html',
-                      {'title': title,
-                       'instruction': instructions,
-                       'source': source,
-                       'source_fields': source_fields,
-                       'master_fields': master_fields,
-                       'rules': selection_rules,
-                       'examples': examples})
-
-    elif stage == 4:
-        if request.method == 'POST':
-            master_rules = json.loads(source.masterdata_rules)
-            master_fields = MasterField.objects.exclude(sources=source)
-            for source_entity in source.source_entities.all():
-                master_entity = MasterEntity.objects.get(
-                    source_entity=source_entity)
-            stage4_post(source, source_entity, master_entity,
-                        master_fields, master_rules)
-            source.master_created = True
-            source.save()
-            return redirect('manage-masters')
-        master_fields = MasterField.objects.all()
-        example_table = create_example_table(source)
-        instructions = 'Stage 4/4: Sample rows with given rules. Looks good?'
-        return render(request, 'masterdata/create_master_stage4.html',
-                      {'title': title,
-                       'instructions': instructions,
-                       'source': source,
-                       'master_fields': master_fields,
-                       'example_table': example_table})
-
-
-@login_required
-@user_passes_test(user_is_data_admin)
-def delete_master(request, source_pk):
+def delete_master_view(request, source_pk):
     source = Source.objects.get(pk=source_pk)
     if request.method == 'POST':
-        MasterValue.objects.filter(
-            source_data__source_entity__source=source).delete()
-        MasterData.objects.filter(mastervalue__isnull=True).delete()
-        MasterEntity.objects.filter(
-            masterdata__isnull=True).delete()
-
-        source_entities = SourceEntity.objects.filter(source=source)
-        for source_entity in source_entities:
-            source_entity.master_entities.clear()
-        source_data = SourceData.objects.filter(source_entity__source=source)
-        for data in source_data:
-            data.master_datas.clear()
-
-        source.master_created = False
-        source.masterdata_stage = 0
-        source.masterdata_rules = None
-        source.save()
-        messages.success(
-            request, f"Master data for {source.name} has been deleted.")
-        return redirect('manage-masters')
+        task_id = uuid()
+        task_name = 'Master deletion'
+        user = request.user
+        info = {
+            'task_name': task_name
+        }
+        task_result = TaskResult.objects.create(
+                task_id=task_id,
+                task_name=task_name)
+        task = Task.objects.create(
+                task_id=task_id,
+                task_result=task_result,
+                user=user,
+                info=json.dumps(info))
+        delete_master.apply_async(
+                (source.id,), 
+                task_id=task_id)
+        return redirect('task-view', task_id)
     return render(request, 'masterdata/delete_master.html',
                   {'source': source})
 
@@ -334,12 +338,12 @@ def master_field_edit(request, master_field_pk):
 def master_field_delete(request, master_field_pk):
     master_field = MasterField.objects.get(pk=master_field_pk)
     if request.method == 'POST':
-        if len(master_field.master_datas.all()) == 0 and len(master_field.master_values.all()) == 0:
+        if master_field.master_datas.count() == 0:
             master_field.delete()
             messages.success(
                 request, "The master field was deleted succesfully!")
         else:
-            messages.error(request,
+            messages.warning(request,
                            "The master field could not be deleted. There is some master data using it!")
         return redirect('master-fields')
     return render(request, 'masterdata/master_field_delete.html',
@@ -381,24 +385,22 @@ def source_list(request):
     source = get_source(request)
     source_fields = SourceField.objects.filter(source=source)
     page_size = request.GET.get('page-size', default=15)
-    source_entitites = get_source_entities(request, source, page_size)
+    source_entities = get_source_entities(request, source, page_size)
     source_entity_data = get_source_entity_data(
-        source_entitites, source_fields)
+        source_entities, source_fields)
     return render(request, 'masterdata/source_list.html',
                   {'selected_source': source,
                    'sources': sources,
                    'source_fields': source_fields,
                    'source_entity_data': source_entity_data,
-                   'page_obj': source_entitites,
+                   'page_obj': source_entities,
                    'page_size': page_size})
 
 
 @login_required
 @user_passes_test(user_is_data_admin)
 @remember_last_query_params('master-list', ['page', 'search', 'matching', 'case-sensitive', 'page-size', ])
-@query_debugger
 def master_list(request):
-    reset_queries()
     master_sources = get_master_sources()
     if len(master_sources) < 1:
         if len(Source.objects.all()) < 1:
@@ -414,21 +416,20 @@ def master_list(request):
     case_sensitive = request.GET.get('case-sensitive', default='yes')
     page_size = request.GET.get('page-size', default=15)
     user_level = get_user_access_level(request)
-    print(len(connection.queries))
     master_fields = MasterField.objects.filter(
         access_level__lte=user_level).exclude(display_order=None)
-    print(len(connection.queries))
     master_entities = get_master_entities_page(
         request, search, matching, case_sensitive, page_size)
-    print(len(connection.queries))
-    master_entity_data = get_master_entity_data(
-        master_entities, master_fields)
-    print(len(connection.queries))
+    master_datas = (MasterData.objects
+                              .select_related('value')
+                              .filter(master_entity__in=master_entities))
+    master_data_dict = get_queryset_dict(master_datas, 
+            'master_entity_id', 'master_field_id')
     context = {
         'selection_value': request.GET.get('source'),
         'master_sources': master_sources,
         'master_fields': master_fields,
-        'master_entity_data': master_entity_data,
+        'master_data_dict': master_data_dict,
         'page_obj': master_entities,
         'page_size': page_size,
     }
@@ -449,17 +450,27 @@ def master_entity_view(request, master_entity_pk):
         pass
     master_entity = MasterEntity.objects.get(pk=master_entity_pk)
     user_level = get_user_access_level(request)
-    master_fields = MasterField.objects.filter(
-        masterdata__master_entity=master_entity
-    ).filter(access_level__lte=user_level)
-    source_entities = master_entity.source_entities.all()
-    master_entity_data = get_separated_master_entity_data(
-        master_entity, master_fields, source_entities)
+    master_fields = (MasterField.objects
+            .filter(master_datas__master_entity=master_entity)
+            .filter(access_level__lte=user_level)
+            .distinct())
+    source_entities = (SourceEntity.objects
+            .select_related('source')
+            .filter(source_datas__master_datas__master_entity=master_entity)
+            .distinct())
+    master_datas = (MasterData.objects
+            .select_related('value')
+            .filter(source_datas__source_entity__in=source_entities)
+            .annotate(source_entity_id=Cast('source_datas__source_entity__id',
+                                            output_field=IntegerField()),)
+            .distinct())
+    master_data_dict = get_queryset_dict(master_datas, 
+                       'source_entity_id', 'master_field_id')
     return render(request, 'masterdata/master_entity_view.html',
                   {'master_entity': master_entity,
                    'master_fields': master_fields,
                    'source_entities': source_entities,
-                   'master_entity_data': master_entity_data})
+                   'master_data_dict': master_data_dict})
 
 
 @login_required
@@ -475,106 +486,93 @@ def master_entity_choose_edit(request, master_entity_pk, source_entity_pk):
 @login_required
 @user_passes_test(user_is_data_admin)
 def master_entity_edit(request, master_entity_pk, source_entity_pk, master_field_pk):
-    master_value = MasterValue.objects.filter(master_data__master_entity__pk=master_entity_pk,
-                                              source_data__source_entity__pk=source_entity_pk,
-                                              master_field__pk=master_field_pk).first()
+    master_data = (
+        MasterData.objects.select_related('value')
+        .filter(master_entity__id=master_entity_pk)
+        .filter(master_field__id=master_field_pk)
+        .filter(source_datas__source_entity__id=source_entity_pk)
+        .distinct()
+        .get()
+    )
     if request.method == 'POST':
-        new_value = request.POST['new_value']
-        old_value = master_value.value
-        master_value.value = new_value
-        master_value.save()
-        comment = EditComment()
-        comment.text = request.POST['comment']
-        comment.prev_value = old_value
-        comment.new_value = new_value
-        comment.master_value = master_value
-        comment.save()
+        with transaction.atomic():
+            try:
+                new_value = Value.objects.get(value=request.POST['new_value'])
+            except Value.DoesNotExist:
+                new_value = Value.objects.create(request.POST['new_value'])
+            prev_value = master_data.value
+            master_data.value = new_value
+            master_data.save()
+            comment = EditComment()
+            comment.text = request.POST['comment']
+            comment.prev_value = prev_value
+            comment.new_value = new_value
+            comment.master_data = master_data
+            comment.user = request.user
+            comment.save()
         return redirect('master-entity-view', master_entity_pk)
-
-    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
-    source_entity = SourceEntity.objects.get(pk=source_entity_pk)
-    comments = master_value.edit_comments.all()
+    comments = (master_data.edit_comments
+                           .select_related('prev_value', 'new_value')
+                           .all()
+    )
     return render(request, 'masterdata/master_entity_edit.html',
-                  {'master_value': master_value,
-                   'master_entity': master_entity,
-                   'source_entity': source_entity,
+                  {'master_data': master_data,
+                   'master_entity_pk': master_entity_pk,
                    'comments': comments})
 
 
 @login_required
 @user_passes_test(user_is_data_admin)
 def master_entity_merge(request, master_entity_pk, source_entity_pk):
-    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
-    source_entity = SourceEntity.objects.get(pk=source_entity_pk)
-    other_master_entities = MasterEntity.objects.filter(
-        master_key=master_entity.master_key).exclude(pk=master_entity.pk).distinct()
-    print(other_master_entities)
     if request.method == 'POST':
         new_master_entity = MasterEntity.objects.get(
             pk=request.POST['master_entity_select'])
-        for data in source_entity.source_datas.all():
-            data.masterdatas.clear()
-        for master_field in MasterField.objects.all():
-            master_value = MasterValue.objects.filter(
-                master_data__master_entity=master_entity,
-                source_data__source_entity=source_entity,
-                master_field=master_field).first()
-            new_master_data = MasterData.objects.filter(
-                master_field=master_field, master_entity=new_master_entity).first()
-            for data in master_value.source_data.all():
-                new_master_data.source_data.add(data)
-            master_value.master_data = new_master_data
-            master_value.save()
-
-        source_entity.master_entities.clear()
-        new_master_entity.source_entities.add(source_entity)
-        if len(MasterValue.objects.filter(master_data__master_entity=master_entity)) == 0:
-            master_entity.delete()
+        master_datas = (
+            MasterData.objects.filter(master_entity__id=master_entity_pk)
+            .filter(source_datas__source_entity__id=source_entity_pk)
+            .distinct()
+        )
+        for master_data in master_datas:
+            master_data.master_entity = new_master_entity
+        with transaction.atomic():
+            MasterData.objects.bulk_update(master_datas, ['master_entity'])
+            if MasterData.objects.filter(master_entity__id=master_entity_pk).count() == 0:
+                MasterEntity.objects.filter(pk=master_entity_pk).delete()
         return redirect('master-list')
+    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
+    other_master_entities = MasterEntity.objects.filter(
+        master_key=master_entity.master_key).exclude(pk=master_entity.pk).distinct()
     return render(request, 'masterdata/master_entity_merge.html',
                   {'master_entity': master_entity,
-                   'source_entity': source_entity,
                    'other_master_entities': other_master_entities})
 
 
 @login_required
 @user_passes_test(user_is_data_admin)
 def master_entity_split(request, master_entity_pk, source_entity_pk):
-    master_entity = MasterEntity.objects.get(pk=master_entity_pk)
-    source_entity = SourceEntity.objects.get(pk=source_entity_pk)
-    source = source_entity.source
-    master_rules = json.loads(source.masterdata_rules)
     if request.method == 'POST':
+        master_entity = MasterEntity.objects.get(pk=master_entity_pk)
+        source_entity = (SourceEntity.objects.select_related('source')
+                                             .get(pk=source_entity_pk)
+        )
+        master_datas = (
+            MasterData.objects.filter(master_entity__id=master_entity_pk)
+            .filter(source_datas__source_entity__id=source_entity_pk)
+            .distinct()
+        )
+        master_rules = json.loads(source_entity.source.masterdata_rules)
         new_master_entity = MasterEntity()
-        new_master_entity.source = source
         new_master_entity.master_key = get_master_key_for_source_entity(
             source_entity, master_rules)
-        new_master_entity.hidden_key = len(
-            source_entity.master_entities.all())
-        new_master_entity.save()
-        for data in source_entity.source_datas.all():
-            data.master_datas.clear()
-        for master_field in MasterField.objects.all():
-            master_value = MasterValue.objects.filter(
-                master_data__master_entity=master_entity,
-                source_data__source_entity=source_entity,
-                master_field=master_field).first()
-            master_data = MasterData()
-            master_data.master_entity = new_master_entity
-            master_data.master_field = master_field
-            master_data.save()
-            for data in master_value.source_data.all():
-                master_data.source_data.add(data)
-            master_value.master_data = master_data
-            master_value.save()
-
-        source_entity.master_entities.clear()
-        new_master_entity.source_entities.add(source_entity)
-        return redirect('master-list')
-
+        new_master_entity.hidden_key = get_hidden_key(new_master_entity)
+        with transaction.atomic():
+            new_master_entity.save()
+            for master_data in master_datas:
+                master_data.master_entity = new_master_entity
+            MasterData.objects.bulk_update(master_datas, ['master_entity'])
+        return redirect('master-entity-view', master_entity_pk)
     return render(request, 'masterdata/master_entity_split.html',
-                  {'master_entity': master_entity,
-                   'source_entity': source_entity})
+                  {'master_entity_pk': master_entity_pk})
 
 
 @login_required

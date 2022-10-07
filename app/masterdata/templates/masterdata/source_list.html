@@ -38,7 +38,7 @@
       <tbody>
         {% for entity in page_obj %}
           <tr class="w3-center">
-            {% for data_value in source_entity_data|get_item:entity %}
+            {% for data_value in source_entity_data|get_item:entity.id %}
               <td class="w3-center">{{ data_value }}</td>
             {% endfor %}
           </tr>
