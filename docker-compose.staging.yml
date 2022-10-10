@@ -21,6 +21,7 @@ services:
     command: celery -A cradle_of_mankind worker -l INFO --concurrency=1
     volumes:
       - ./app/logs:/src/app/logs
+      - static:/vol/web
     env_file:
       - ./.env
     depends_on:
