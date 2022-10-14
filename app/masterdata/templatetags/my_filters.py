@@ -27,7 +27,6 @@ def to_string(master_data):
     """
 
     if not isinstance(master_data, list):
-        print(master_data)
         return master_data.value.value
     values = set()
     for md in master_data:
