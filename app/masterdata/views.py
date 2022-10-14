@@ -16,7 +16,12 @@ from celery import uuid
 from django_celery_results.models import TaskResult
 
 from .forms import MasterFieldForm, SourceDataImportForm
-from .tasks import import_source_data, create_master_data, delete_master
+from .tasks import (
+    import_source_data, 
+    create_master_data, 
+    edit_master_data,
+    delete_master,
+)
 from .utils import *
 from .models import (
     Source,
@@ -176,94 +181,110 @@ def create_master(request, source_pk, stage):
                        'example_table': example_table})
 
 
-# NOT WORKING BECAUSE OF MODEL CHANGES
-# @login_required
-# @user_passes_test(user_is_data_admin)
-# def edit_master(request, source_pk, stage):
-#     source = Source.objects.get(pk=source_pk)
-#     source_field_ids = []
-#     for source_field in source.source_fields.all():
-#         if len(source_field.source_datas.first().master_datas.all()) == 0:
-#             source_field_ids.append(source_field.id)
-#     source_fields = SourceField.objects.filter(pk__in=source_field_ids)
-#     title = "Edit Master"
-#
-#     if stage == 1:
-#         if request.method == 'POST':
-#             stage1_post(request, source, source_fields, stage)
-#             return redirect('edit-master', source_pk, stage+1)
-#         examples = create_examples(source)
-#         instructions = "Stage 1/4: Choose which fields need to be divided into parts "\
-#                        "(only the fields that haven't been mapped yet are shown)."
-#         return render(request, 'masterdata/create_master_stage1.html',
-#                       {'title': title,
-#                        'instructions': instructions,
-#                        'source': source,
-#                        'source_fields': source_fields,
-#                        'examples': examples})
-#
-#     elif stage == 2:
-#         source_fields = source_fields.filter(is_divided=True)
-#         if request.method == 'POST':
-#             stage2_post(request, source, source_fields, stage)
-#             next_stage = stage+1 if "next" in request.POST else stage-1
-#             return redirect('edit-master', source_pk, next_stage)
-#         examples = create_examples(source)
-#         instructions = 'Stage 2/4: Give delimiters that will be used to divide the source fields you want to be in masterdata.'
-#         return render(request, 'masterdata/create_master_stage2.html',
-#                       {'title': title,
-#                        'instructions': instructions,
-#                        'source': source,
-#                        'source_fields': source_fields,
-#                        'examples': examples})
-#
-#     elif stage == 3:
-#         master_fields = MasterField.objects.exclude(sources=source)
-#         if request.method == 'POST':
-#             if source.masterdata_rules:
-#                 masterdata_rules = json.loads(source.masterdata_rules)
-#             else:
-#                 masterdata_rules = {}
-#                 for master_field in MasterField.objects.all():
-#                     masterdata_rules[master_field.id] = {}
-#             stage3_post(request, source, source_fields,
-#                         masterdata_rules, stage)
-#             next_stage = stage+1 if 'next' in request.POST else stage-1
-#             return redirect('edit-master', source_pk, next_stage)
-#         selection_rules = get_selection_rules(
-#             source, master_fields)
-#         examples = create_examples_with_parts(source)
-#         instructions = 'Stage 3/4: Assign rules for master field mapping.'
-#         return render(request, 'masterdata/create_master_stage3.html',
-#                       {'title': title,
-#                        'instruction': instructions,
-#                        'source': source,
-#                        'source_fields': source_fields,
-#                        'master_fields': master_fields,
-#                        'rules': selection_rules,
-#                        'examples': examples})
-#
-#     elif stage == 4:
-#         if request.method == 'POST':
-#             master_rules = json.loads(source.masterdata_rules)
-#             master_fields = MasterField.objects.exclude(sources=source)
-#             for source_entity in source.source_entities.all():
-#                 master_entity = MasterEntity.objects.get(
-#                     source_entity=source_entity)
-#             stage4_post(source, source_entity, master_entity,
-#                         master_fields, master_rules)
-#             source.master_created = True
-#             source.save()
-#             return redirect('manage-masters')
-#         master_fields = MasterField.objects.all()
-#         example_table = create_example_table(source)
-#         instructions = 'Stage 4/4: Sample rows with given rules. Looks good?'
-#         return render(request, 'masterdata/create_master_stage4.html',
-#                       {'title': title,
-#                        'instructions': instructions,
-#                        'source': source,
-#                        'master_fields': master_fields,
-#                        'example_table': example_table})
+@login_required
+@user_passes_test(user_is_data_admin)
+@query_debugger
+def edit_master(request, source_pk, stage):
+    source = Source.objects.get(pk=source_pk)
+    source_fields = (
+            SourceField.objects.filter(source=source)
+            .filter(source_datas__master_datas=None)
+            .distinct()
+    )
+    title = "Edit Master"
+    if stage == 1:
+        if request.method == 'POST':
+            stage1_post(request, source, source_fields, stage)
+            return redirect('edit-master', source_pk, stage+1)
+        examples = create_examples(source)
+        instructions = "Stage 1/4: Choose which fields need to be divided into parts "\
+                       "(only the fields that haven't been mapped yet are shown)."
+        return render(request, 'masterdata/create_master_stage1.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'examples': examples})
+    elif stage == 2:
+        source_fields = source_fields.filter(is_divided=True)
+        if request.method == 'POST':
+            stage2_post(request, source, source_fields, stage)
+            next_stage = stage+1 if "next" in request.POST else stage-1
+            return redirect('edit-master', source_pk, next_stage)
+        examples = create_examples(source)
+        instructions = 'Stage 2/4: Give delimiters that will be used to divide the source fields you want to be in masterdata.'
+        return render(request, 'masterdata/create_master_stage2.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'examples': examples})
+    elif stage == 3:
+        master_fields = MasterField.objects.exclude(
+            master_datas__source_datas__source_entity__source=source
+        )
+        if request.method == 'POST':
+            if source.masterdata_rules:
+                masterdata_rules = json.loads(source.masterdata_rules)
+            stage3_post(request, source, source_fields,
+                masterdata_rules, stage)
+            next_stage = stage+1 if 'next' in request.POST else stage-1
+            return redirect('edit-master', source_pk, next_stage)
+        selection_rules = get_selection_rules(
+            source, master_fields)
+        examples = create_examples_with_parts(source)
+        instructions = 'Stage 3/4: Assign rules for master field mapping.'
+        return render(request, 'masterdata/create_master_stage3.html',
+                      {'title': title,
+                       'instruction': instructions,
+                       'source': source,
+                       'source_fields': source_fields,
+                       'master_fields': master_fields,
+                       'rules': selection_rules,
+                       'examples': examples})
+    elif stage == 4:
+        if request.method == 'POST':
+            task_id = uuid()
+            task_name = 'Masterdata Edit'
+            user = request.user
+            info = {
+                'task_name': task_name
+            }
+            task_result = TaskResult.objects.create(
+                task_id=task_id,
+                task_name=task_name
+            )
+            task = Task.objects.create(
+                task_id=task_id,
+                task_result=task_result,
+                user=user,
+                info=json.dumps(info)
+            )
+            edit_master_data.apply_async(
+                    (source.id,), 
+                    task_id=task_id
+            )
+            return redirect('task-view', task_id)
+        if request.method == 'POST':
+            master_rules = json.loads(source.masterdata_rules)
+            master_fields = MasterField.objects.exclude(sources=source)
+            for source_entity in source.source_entities.all():
+                master_entity = MasterEntity.objects.get(
+                    source_entity=source_entity)
+            stage4_post(source, source_entity, master_entity,
+                        master_fields, master_rules)
+            source.master_created = True
+            source.save()
+            return redirect('manage-masters')
+        master_fields = MasterField.objects.all()
+        example_table = create_example_table(source)
+        instructions = 'Stage 4/4: Sample rows with given rules. Looks good?'
+        return render(request, 'masterdata/create_master_stage4.html',
+                      {'title': title,
+                       'instructions': instructions,
+                       'source': source,
+                       'master_fields': master_fields,
+                       'example_table': example_table})
 
 
 @login_required

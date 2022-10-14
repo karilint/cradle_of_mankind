@@ -220,6 +220,89 @@ def create_master_data(self, source_id):
 
 
 @shared_task(bind=True)
+def edit_master_data(self, source_id):
+    logger.info(f"Starting masterdata creation for source ({source_id})")
+    set_task_state(self, 'PROGRESS')
+
+
+    source = Source.objects.get(id=source_id)
+    source_datas = (SourceData.objects.select_related('value')
+                                      .filter(source_entity__source=source))
+    source_fields = SourceField.objects.filter(source=source)
+    master_rules = json.loads(source.masterdata_rules)
+    master_fields = MasterField.objects.exclude(
+        master_datas__source_datas__source_entity__source=source)
+    total_work = source.source_entities.count()
+
+    # Already existing objs
+    source_data_dict = get_queryset_dict(source_datas, 'source_entity_id', 
+                                                       'source_field_id')
+    source_field_dict = get_queryset_dict(source_fields)
+    entity_dict = get_queryset_dict(MasterEntity.objects.all(), 'master_key')
+    value_dict = get_queryset_dict(Value.objects.all(), 'value')
+
+    # Last id/pk
+    last_master_data = MasterData.objects.order_by('id').last()
+    last_value = Value.objects.order_by('id').last()
+    last_md_id = last_master_data.id if last_master_data else 0
+    last_value_id = last_value.id if last_value else 0
+
+    new_value_objs = []
+    new_master_data_objs = []
+    new_master_source_data_objs = []
+
+    for counter, source_entity in enumerate(source.source_entities.all(), 1):
+        logger.debug(f"Masterdata progress: {counter} of {total_work}")
+        record_progress(self, counter, total_work, 100, "Creating master data from the source...")
+        master_key = get_master_key_for_source_entity(
+            source_entity, master_rules)
+        master_entity = entity_dict[master_key]
+        for master_field in master_fields:
+            master_value = get_master_value(source, source_entity, 
+                                            master_field,
+                                            source_field_dict, 
+                                            source_data_dict)
+            source_data_ids = get_master_source_data_ids(source, source_entity,
+                                                         master_field,
+                                                         source_field_dict,
+                                                         source_data_dict)
+            if not master_value in value_dict:
+                last_value_id += 1
+                new_value = Value()
+                new_value.id = last_value_id
+                new_value.value = master_value
+                new_value_objs.append(new_value)
+                value_dict[master_value] = new_value
+            last_md_id += 1
+            master_data = MasterData()
+            master_data.id = last_md_id
+            master_data.value = value_dict[master_value]
+            master_data.master_entity = master_entity
+            master_data.master_field = master_field
+            new_master_data_objs.append(master_data)
+            for source_data_id in source_data_ids:
+                msd = MasterSourceData()
+                msd.source_data_id = source_data_id
+                msd.master_data_id = master_data.id
+                new_master_source_data_objs.append(msd)
+    logger.info("Saving master data to database...")
+    record_progress(self, total_work, total_work, 1, 
+            "Saving master data to database... This might take awhile")
+    with transaction.atomic():
+        logger.info(f"Saving values to database "
+                    f"(object count {len(new_value_objs)})")
+        Value.objects.bulk_create(new_value_objs, batch_size=5000)
+        logger.info(f"Saving master_datas to database "
+                    f"(object count {len(new_master_data_objs)})")
+        MasterData.objects.bulk_create(new_master_data_objs, batch_size=5000)
+        logger.info(f"Saving master_data and source_data "
+                    f"connections to database (object count "
+                    f"{len(new_master_source_data_objs)})")
+        MasterSourceData.objects.bulk_create(new_master_source_data_objs, 
+                                             batch_size=5000)
+
+
+@shared_task(bind=True)
 def delete_master(self, source_id):
     logger.info(f"Starting masterdata deletion for source ({source_id})")
     set_task_state(self, 'PROGRESS')

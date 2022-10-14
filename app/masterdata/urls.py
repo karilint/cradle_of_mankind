@@ -10,9 +10,8 @@ urlpatterns = [
     path('create/<int:source_pk>/stage-<int:stage>',
          create_master, name='create-master'),
     path('delete/<int:source_pk>', delete_master_view, name='delete-master'),
-    # NOT WORKING BECAUSE MODEL EDITS
-    # path('edit/<int:source_pk>/stage-<int:stage>',
-    #      edit_master, name='edit-master'),
+    path('edit/<int:source_pk>/stage-<int:stage>',
+         edit_master, name='edit-master'),
     path('master-fields/', master_fields, name='master-fields'),
     path('master-fields/edit/<int:master_field_pk>',
          master_field_edit, name='master-field-edit'),

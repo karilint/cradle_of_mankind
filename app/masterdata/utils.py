@@ -96,6 +96,7 @@ def stage3_post(request, source, source_fields, masterdata_rules, stage):
                         f"{source_field.id}_{i}_ordering_{num}")
                     ending = request.POST.get(
                         f"{source_field.id}_{i}_ending_{num}")
+                    masterdata_rules.setdefault(master_field_id, {})
                     masterdata_rules[master_field_id][ordering] = {
                         'source_field': source_field.id,
                         'part': i,
@@ -108,6 +109,7 @@ def stage3_post(request, source, source_fields, masterdata_rules, stage):
                 ordering = request.POST.get(
                     f"{source_field.id}_ordering_{num}")
                 ending = request.POST.get(f"{source_field.id}_ending_{num}")
+                masterdata_rules.setdefault(master_field_id, {})
                 masterdata_rules[master_field_id][ordering] = {
                     'source_field': source_field.id,
                     'ending': ending}
@@ -119,7 +121,7 @@ def stage3_post(request, source, source_fields, masterdata_rules, stage):
 def stage4_post(source, source_entity, master_entity, master_fields, master_rules):
     for master_field in master_fields:
         source_datas = []
-        master_field_rules = master_rules[str(master_field.id)]
+        master_field_rules = master_rules.get(str(master_field.id), None)
         if not master_field_rules:
             continue
         ordered_keys = sorted(list(master_field_rules.keys()))
@@ -161,7 +163,7 @@ def stage4_post(source, source_entity, master_entity, master_fields, master_rule
 def get_master_value(source, source_entity, master_field, 
                      source_field_dict=None, source_data_dict=None):
     master_rules = json.loads(source.masterdata_rules)
-    master_field_rules = master_rules[str(master_field.id)]
+    master_field_rules = master_rules.get(str(master_field.id), None)
     if not master_field_rules:
         return ''
     ordered_keys = sorted(list(master_field_rules.keys()))
@@ -198,7 +200,7 @@ def get_master_source_data_ids(source, source_entity, master_field,
                                source_field_dict=None, source_data_dict=None):
     source_data_ids = set()
     master_rules = json.loads(source.masterdata_rules)
-    master_field_rules = master_rules[str(master_field.id)]
+    master_field_rules = master_rules.get(str(master_field.id), None)
     if not master_field_rules:
         return {}
     ordered_keys = sorted(list(master_field_rules.keys()))
@@ -239,7 +241,9 @@ def get_selection_rules(source, master_fields):
     if source.masterdata_rules:
         rules = json.loads(source.masterdata_rules)
         for master_field in master_fields.all():
-            master_field_rules = rules[str(master_field.id)]
+            master_field_rules = rules.get(str(master_field.id), None)
+            if not master_field_rules:
+                continue
             for ordering in master_field_rules.keys():
                 ending = master_field_rules[ordering]['ending']
                 source_field = SourceField.objects.get(
@@ -270,8 +274,10 @@ def update_masterdata_rules(request, source, source_fields):
         if rules_changed:
             source.masterdata_rules = json.dumps(rules)
             source.save()
-            messages.info(request,
-                          'You changed fields that had already been assigned some rules for mapping. Those were reseted in stage 3.')
+            messages.info(request, (
+                'You changed fields that had already been assigned some rules'
+                'for mapping. Those were reseted in stage 3.')
+            )
 
 
 def get_master_key_for_source_entity(source_entity, master_rules):
@@ -279,7 +285,7 @@ def get_master_key_for_source_entity(source_entity, master_rules):
     primary_fields = MasterField.objects.filter(
         primary_key=True).order_by('pk')
     for master_field in primary_fields:
-        master_field_rules = master_rules[str(master_field.id)]
+        master_field_rules = master_rules.get(str(master_field.id), None)
         if not master_field_rules:
             continue
         ordered_keys = sorted(list(master_field_rules.keys()))

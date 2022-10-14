@@ -21,12 +21,12 @@
             {% if source.master_created %}
               <td><i class="material-icons" style="color: darkgreen">check_circle</i></td>
               <td><a href="{% url 'create-master' source.id 1 %}"><i class="material-icons highlight"></i></a></td>
-              <td><a href="#"><i class="material-icons highlight isDisabled">edit</i></a></td>
+              <td><a href="{% url 'edit-master' source.id 1 %}"><i class="material-icons highlight">edit</i></a></td>
               <td><a href="{% url 'delete-master' source.id %}"><i class="material-icons highlight">delete</i></a></td>
             {% else %}
               <td><i class="material-icons" style="color: darkred;">cancel</i></td>
               <td><a href="{% url 'create-master' source.id 1 %}"><i class="material-icons highlight">add_circle</i></a></td>
-              <td><a href="#"><i class="material-icons highlight"></i></a></td>
+              <td><a href="{% url 'edit-master' source.id 1 %}"><i class="material-icons highlight"></i></a></td>
               <td><i class="material-icons highlight"></i></td>
             {% endif %}
         </tr>
