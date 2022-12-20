@@ -1,4 +1,5 @@
 from django import template
+from masterdata.models import MasterData
 
 register = template.Library()
 
@@ -25,11 +26,13 @@ def to_string(master_data):
     """Takes a master data object (or list of them) and returns 
     a string where all their unique values have been combined.
     """
-
-    if not isinstance(master_data, list):
+    if isinstance(master_data, MasterData):
         return master_data.value.value
-    values = set()
-    for md in master_data:
-        if md.value.value:
-            values.add(md.value.value)
-    return ' | '.join(values)
+    if isinstance(master_data, list):
+        values = set()
+        for md in master_data:
+            if md.value.value:
+                values.add(md.value.value)
+        return ' | '.join(values)
+
+    return ""
