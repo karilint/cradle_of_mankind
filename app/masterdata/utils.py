@@ -630,12 +630,16 @@ def get_rows(search, matching, case_sensitive):
     rows = []
     master_fields = MasterField.objects.exclude(display_order=None)
     master_entities = get_master_entities(search, matching, case_sensitive)
+    master_datas = (MasterData.objects
+                              .select_related('value')
+                              .filter(master_entity__in=master_entities))
+    master_data_dict = get_queryset_dict(master_datas, 
+            'master_entity_id', 'master_field_id')
     rows.append(master_fields.values_list('name', flat=True))
     for master_entity in master_entities:
         row = []
         for master_field in master_fields:
-            master_data = MasterData.objects.filter(
-                master_entity=master_entity, master_field=master_field).first()
+            master_data = master_data_dict[master_entity.id].get(master_field.id)
             row.append(to_string(master_data))
         rows.append(row)
     return rows

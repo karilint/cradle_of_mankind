@@ -701,10 +701,12 @@ def export_to_csv(request):
     matching = request.GET.get('matching', default='exact')
     case_sensitive = request.GET.get('case-sensitive', default='yes')
 
+    logger.info(f"Creating export for master entities (search='{search}', matching={matching}, case_sensitive={case_sensitive})")
     rows = get_rows(search, matching, case_sensitive)
     pseudo_buffer = Echo()
     writer = csv.writer(pseudo_buffer)
     response = StreamingHttpResponse((writer.writerow(row) for row in rows),
                                      content_type="text/csv")
     response['Content-Disposition'] = 'attachment; filename="masterdata.csv"'
+    logger.info(f"Export created.")
     return response
