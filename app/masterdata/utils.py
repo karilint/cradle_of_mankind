@@ -520,29 +520,29 @@ def get_master_entities(search, matching, case_sensitive):
     if case_sensitive == 'yes':
         if matching == 'exact':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__exact=search).distinct()
+                master_datas__value__value__exact=search).distinct()
         elif matching == 'contains':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__contains=search).distinct()
+                master_datas__value__value__contains=search).distinct()
         elif matching == 'startswith':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__startswith=search).distinct()
+                master_datas__value__value__startswith=search).distinct()
         elif matching == 'endswith':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__endswith=search).distinct()
+                master_datas__value__value__endswith=search).distinct()
     elif case_sensitive == 'no':
         if matching == 'exact':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__iexact=search).distinct()
+                master_datas__value__value__iexact=search).distinct()
         elif matching == 'contains':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__icontains=search).distinct()
+                master_datas__value__value__icontains=search).distinct()
         elif matching == 'startswith':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__istartswith=search).distinct()
+                master_datas__value__value__istartswith=search).distinct()
         elif matching == 'endswith':
             master_entities = MasterEntity.objects.filter(
-                masterdata__mastervalue__value__iendswith=search).distinct()
+                master_datas__value__value__iendswith=search).distinct()
     return master_entities
 
 
