@@ -6,20 +6,20 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('zooniverse', '0002_auto_20201116_1424'),
+        ("zooniverse", "0002_auto_20201116_1424"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='annotation',
-            name='stg_time_stamp',
+            model_name="annotation",
+            name="stg_time_stamp",
         ),
         migrations.RemoveField(
-            model_name='classification',
-            name='stg_time_stamp',
+            model_name="classification",
+            name="stg_time_stamp",
         ),
         migrations.RemoveField(
-            model_name='subject',
-            name='stg_time_stamp',
+            model_name="subject",
+            name="stg_time_stamp",
         ),
     ]

@@ -14,5 +14,3 @@ def record_progress(task, current, total, interval=1, description=""):
         return
     progress_recorder = ProgressRecorder(task)
     progress_recorder.set_progress(current, total, description)
-
-

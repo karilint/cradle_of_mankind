@@ -11,50 +11,82 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('quality_control', '0003_annotationfield'),
+        ("quality_control", "0003_annotationfield"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='annotationfield',
-            name='created_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='added_annotation_fields', to=settings.AUTH_USER_MODEL),
+            model_name="annotationfield",
+            name="created_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="added_annotation_fields",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='annotationfield',
-            name='created_on',
-            field=models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now),
+            model_name="annotationfield",
+            name="created_on",
+            field=models.DateTimeField(
+                auto_now_add=True, default=django.utils.timezone.now
+            ),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='annotationfield',
-            name='modified_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_annotation_fields', to=settings.AUTH_USER_MODEL),
+            model_name="annotationfield",
+            name="modified_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="modified_annotation_fields",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='annotationfield',
-            name='modified_on',
+            model_name="annotationfield",
+            name="modified_on",
             field=models.DateTimeField(auto_now=True),
         ),
         migrations.AddField(
-            model_name='finalannotation',
-            name='created_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='added_final_annotations', to=settings.AUTH_USER_MODEL),
+            model_name="finalannotation",
+            name="created_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="added_final_annotations",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='finalannotation',
-            name='created_on',
-            field=models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now),
+            model_name="finalannotation",
+            name="created_on",
+            field=models.DateTimeField(
+                auto_now_add=True, default=django.utils.timezone.now
+            ),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='finalannotation',
-            name='modified_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_final_annotations', to=settings.AUTH_USER_MODEL),
+            model_name="finalannotation",
+            name="modified_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="modified_final_annotations",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='finalannotation',
-            name='modified_on',
+            model_name="finalannotation",
+            name="modified_on",
             field=models.DateTimeField(auto_now=True),
         ),
     ]

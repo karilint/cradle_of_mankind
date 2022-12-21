@@ -9,17 +9,31 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('zooniverse', '0006_auto_20201207_0713'),
+        ("zooniverse", "0006_auto_20201207_0713"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='FinalAnnotation',
+            name="FinalAnnotation",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('question', models.CharField(blank=True, max_length=255)),
-                ('answer', models.TextField(blank=True)),
-                ('retirement', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='zooniverse.retirement')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("question", models.CharField(blank=True, max_length=255)),
+                ("answer", models.TextField(blank=True)),
+                (
+                    "retirement",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="zooniverse.retirement",
+                    ),
+                ),
             ],
         ),
     ]

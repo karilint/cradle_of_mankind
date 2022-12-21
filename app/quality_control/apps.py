@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class QualityControlConfig(AppConfig):
-    name = 'quality_control'
+    name = "quality_control"

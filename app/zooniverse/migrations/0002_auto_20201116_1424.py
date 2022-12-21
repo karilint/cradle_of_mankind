@@ -7,22 +7,30 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('zooniverse', '0001_initial'),
+        ("zooniverse", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='subject',
-            name='classification',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, to='zooniverse.classification'),
+            model_name="subject",
+            name="classification",
+            field=models.OneToOneField(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="zooniverse.classification",
+            ),
         ),
         migrations.AlterField(
-            model_name='annotation',
-            name='classification',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='zooniverse.classification'),
+            model_name="annotation",
+            name="classification",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="zooniverse.classification",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='annotation',
-            unique_together={('classification', 'task')},
+            name="annotation",
+            unique_together={("classification", "task")},
         ),
     ]

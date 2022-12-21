@@ -17,11 +17,13 @@ class Subject(models.Model):
 
 class Retirement(models.Model):
     id = models.IntegerField(primary_key=True, unique=True)
-    subject = models.ForeignKey(Subject, models.SET_NULL,
-                                blank=True, null=True)
-    workflow = models.ForeignKey(Workflow, models.CASCADE,
-                                 blank=True, null=True)
-    status = models.CharField(max_length=255, default='to be checked')
+    subject = models.ForeignKey(
+        Subject, models.SET_NULL, blank=True, null=True
+    )
+    workflow = models.ForeignKey(
+        Workflow, models.CASCADE, blank=True, null=True
+    )
+    status = models.CharField(max_length=255, default="to be checked")
     classifications_count = models.IntegerField(null=True)
     checked_on = models.DateTimeField(null=True, default=None)
     checked_by = ForeignKey(User, on_delete=PROTECT, null=True, default=None)
@@ -36,12 +38,15 @@ class Classification(models.Model):
     user_name = models.CharField(max_length=255, blank=True)
     user_id = models.CharField(max_length=255, blank=True)
     user_ip = models.CharField(max_length=255, blank=True)
-    subject = models.ForeignKey(Subject, models.SET_NULL,
-                                blank=True, null=True)
-    retirement = models.ForeignKey(Retirement, models.SET_NULL,
-                                   blank=True, null=True)
-    workflow = models.ForeignKey(Workflow, models.SET_NULL,
-                                 blank=True, null=True)
+    subject = models.ForeignKey(
+        Subject, models.SET_NULL, blank=True, null=True
+    )
+    retirement = models.ForeignKey(
+        Retirement, models.SET_NULL, blank=True, null=True
+    )
+    workflow = models.ForeignKey(
+        Workflow, models.SET_NULL, blank=True, null=True
+    )
     workflow_version = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(null=True)
     gold_standard = models.CharField(max_length=255, blank=True)
@@ -52,10 +57,11 @@ class Classification(models.Model):
 class Annotation(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
     classification = models.ForeignKey(
-        Classification, on_delete=models.SET_NULL, null=True)
+        Classification, on_delete=models.SET_NULL, null=True
+    )
     task = models.CharField(max_length=50, blank=True)
     task_label = models.TextField(blank=True)
     value = models.TextField(blank=True)
 
     class Meta:
-        unique_together = [['classification', 'task']]
+        unique_together = [["classification", "task"]]

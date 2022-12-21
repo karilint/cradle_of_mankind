@@ -10,28 +10,58 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('scans', '0002_auto_20201110_1525'),
+        ("scans", "0002_auto_20201110_1525"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='historicalscan',
-            name='created_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, db_constraint=False, editable=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to=settings.AUTH_USER_MODEL),
+            model_name="historicalscan",
+            name="created_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                db_constraint=False,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='historicalscan',
-            name='modified_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, db_constraint=False, editable=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to=settings.AUTH_USER_MODEL),
+            model_name="historicalscan",
+            name="modified_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                db_constraint=False,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='scan',
-            name='created_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='added_scans', to=settings.AUTH_USER_MODEL),
+            model_name="scan",
+            name="created_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="added_scans",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='scan',
-            name='modified_by',
-            field=django_userforeignkey.models.fields.UserForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='modified_scans', to=settings.AUTH_USER_MODEL),
+            model_name="scan",
+            name="modified_by",
+            field=django_userforeignkey.models.fields.UserForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="modified_scans",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

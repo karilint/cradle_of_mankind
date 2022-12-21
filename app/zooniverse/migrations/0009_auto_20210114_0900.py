@@ -9,18 +9,23 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('zooniverse', '0008_auto_20201218_1654'),
+        ("zooniverse", "0008_auto_20201218_1654"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='retirement',
-            name='checked_by',
-            field=models.ForeignKey(default=None, null=True, on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
+            model_name="retirement",
+            name="checked_by",
+            field=models.ForeignKey(
+                default=None,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='retirement',
-            name='checked_on',
+            model_name="retirement",
+            name="checked_on",
             field=models.DateTimeField(default=None, null=True),
         ),
     ]

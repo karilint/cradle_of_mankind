@@ -1,7 +1,8 @@
 from typing import Callable
 from django.contrib import admin
 from .models import (
-    Retirement, Workflow,
+    Retirement,
+    Workflow,
     Classification,
     Annotation,
     Subject,

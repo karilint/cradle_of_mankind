@@ -1,13 +1,7 @@
-
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from django.views.generic.base import TemplateView
-from users.views import (
-    signup,
-    normal_signup,
-    editor_signup,
-    data_admin_signup
-)
+from users.views import signup, normal_signup, editor_signup, data_admin_signup
 
 
 urlpatterns = [

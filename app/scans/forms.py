@@ -4,14 +4,16 @@ from .models import Scan
 
 
 def validate_file_extension(file):
-    if not file.name.endswith('.json'):
+    if not file.name.endswith(".json"):
         raise ValidationError(
-            u'Wrong file type. The file needs to be in json format.')
+            "Wrong file type. The file needs to be in json format."
+        )
 
 
 class ScanDataImportForm(forms.Form):
-    file = forms.FileField(label="Upload .json file",
-                           validators=[validate_file_extension])
+    file = forms.FileField(
+        label="Upload .json file", validators=[validate_file_extension]
+    )
 
 
 class ScanEditForm(forms.ModelForm):
@@ -19,7 +21,7 @@ class ScanEditForm(forms.ModelForm):
         ("Waiting for upload", "Waiting for upload"),
         ("IN_PROGRESS", "In progress"),
         ("JPG DONE", "JPG done"),
-        ("FINISHED", "Quality Check finished")
+        ("FINISHED", "Quality Check finished"),
     ]
     TYPE_CHOICES = [
         ("Accession card", "Accession card"),
@@ -38,4 +40,4 @@ class ScanEditForm(forms.ModelForm):
 
     class Meta:
         model = Scan
-        fields = ['type', 'status', 'text']
+        fields = ["type", "status", "text"]

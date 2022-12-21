@@ -14,20 +14,32 @@ class FinalAnnotation(models.Model):
     answer = models.TextField(blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
     modified_on = models.DateTimeField(auto_now=True)
-    created_by = UserForeignKey(auto_user_add=True, on_delete=PROTECT,
-                                related_name='added_final_annotations')
-    modified_by = UserForeignKey(auto_user=True, on_delete=PROTECT,
-                                 related_name='modified_final_annotations')
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        on_delete=PROTECT,
+        related_name="added_final_annotations",
+    )
+    modified_by = UserForeignKey(
+        auto_user=True,
+        on_delete=PROTECT,
+        related_name="modified_final_annotations",
+    )
 
 
 class AnnotationField(models.Model):
     name = models.CharField(max_length=255)
     created_on = models.DateTimeField(auto_now_add=True)
     modified_on = models.DateTimeField(auto_now=True)
-    created_by = UserForeignKey(auto_user_add=True, on_delete=PROTECT,
-                                related_name='added_annotation_fields')
-    modified_by = UserForeignKey(auto_user=True, on_delete=PROTECT,
-                                 related_name='modified_annotation_fields')
+    created_by = UserForeignKey(
+        auto_user_add=True,
+        on_delete=PROTECT,
+        related_name="added_annotation_fields",
+    )
+    modified_by = UserForeignKey(
+        auto_user=True,
+        on_delete=PROTECT,
+        related_name="modified_annotation_fields",
+    )
 
     class Meta:
         ordering = ["name"]

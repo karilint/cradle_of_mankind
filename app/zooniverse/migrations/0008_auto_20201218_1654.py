@@ -6,17 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('zooniverse', '0007_retirement_workflow'),
+        ("zooniverse", "0007_retirement_workflow"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='retirement',
-            name='checked',
+            model_name="retirement",
+            name="checked",
         ),
         migrations.AddField(
-            model_name='retirement',
-            name='status',
-            field=models.CharField(default='to be checked', max_length=255),
+            model_name="retirement",
+            name="status",
+            field=models.CharField(default="to be checked", max_length=255),
         ),
     ]

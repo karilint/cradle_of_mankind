@@ -21,24 +21,25 @@ from django.urls.conf import include
 from users.views import index
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('users/', include('users.urls')),
-    path('accounts/', include('allauth.urls')),
-    path('scans/', include('scans.urls')),
-    path('zooniverse/', include('zooniverse.urls')),
-    path('quality_control/', include('quality_control.urls')),
-    path('masterdata/', include('masterdata.urls')),
-    path('contact/', include('contact.urls')),
-    path('tasks/', include('tasks.urls')),
-    path('', index, name='index'),
-    re_path(r'^celery-progress/', include('celery_progress.urls')),
+    path("admin/", admin.site.urls),
+    path("users/", include("users.urls")),
+    path("accounts/", include("allauth.urls")),
+    path("scans/", include("scans.urls")),
+    path("zooniverse/", include("zooniverse.urls")),
+    path("quality_control/", include("quality_control.urls")),
+    path("masterdata/", include("masterdata.urls")),
+    path("contact/", include("contact.urls")),
+    path("tasks/", include("tasks.urls")),
+    path("", index, name="index"),
+    re_path(r"^celery-progress/", include("celery_progress.urls")),
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(
+        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
+    )
 
-handler404 = 'main.views.not_found'
-handler500 = 'main.views.server_error'
-handler403 = 'main.views.permission_denied'
-handler400 = 'main.views.bad_request'
+handler404 = "main.views.not_found"
+handler500 = "main.views.server_error"
+handler403 = "main.views.permission_denied"
+handler400 = "main.views.bad_request"
