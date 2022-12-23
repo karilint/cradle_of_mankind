@@ -450,7 +450,9 @@ def create_example_table(source):
     source_entity_ids = list(
         source.source_entities.all().values_list("id", flat=True)
     )
-    source_entity_ids = random.sample(source_entity_ids, 10)
+    source_entity_ids = random.sample(
+        source_entity_ids, min(10, len(source_entity_ids))
+    )
     source_entities = source.source_entities.filter(pk__in=source_entity_ids)
     source_fields = SourceField.objects.filter(source=source)
     master_fields = MasterField.objects.all()
