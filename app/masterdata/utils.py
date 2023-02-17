@@ -225,7 +225,7 @@ def get_master_value(
         else:
             master_value += source_data.value.value
             master_value += master_field_rules[key]["ending"]
-    return master_value
+    return master_value.strip()
 
 
 def get_master_source_data_ids(
