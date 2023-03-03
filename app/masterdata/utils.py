@@ -758,3 +758,25 @@ def set_primary_keys(request_post, source_fields):
     for source_field in source_fields:
         if request_post[source_field.name] == "True":
             source_field.is_primary_key = True
+
+
+def fix_non_trimmed_values():
+    master_values = Value.objects.all()
+    for mv in master_values:
+        if mv.value == mv.value.strip():
+            continue
+        print(f"Updating value id {mv.id}")
+        trimmed_value = mv.value.strip()
+        new_value = None
+        for value in Value.objects.filter(value=trimmed_value).all():
+            if value.value == value.value.strip():
+                new_value = value
+        if new_value is None:
+            new_value = Value.objects.create(value=trimmed_value)
+        related_masterdatas = mv.master_datas.all()
+        for md in related_masterdatas:
+            md.value = new_value
+        MasterData.objects.bulk_update(related_masterdatas, ["value"])
+    Value.objects.filter(master_datas__isnull=True).filter(
+        source_datas__isnull=True
+    ).delete()
