@@ -358,10 +358,10 @@ def get_master_key_for_source_entity(source_entity, master_rules):
                     value = ""
                 master_key += value
                 master_key += master_field_rules[key]["ending"]
-            else:
-                master_key += source_data.value.value
-                master_key += master_field_rules[key]["ending"]
-    return master_key
+                continue
+            master_key += source_data.value.value
+            master_key += master_field_rules[key]["ending"]
+    return master_key.strip()
 
 
 def get_hidden_key(master_entity):
