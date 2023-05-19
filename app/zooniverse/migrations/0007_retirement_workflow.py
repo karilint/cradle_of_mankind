@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("zooniverse", "0006_auto_20201207_0713"),
     ]

@@ -487,7 +487,8 @@ def get_master_sources():
 
 def get_source_entity_data(entities, fields):
     """Returns a dictionary containing lists of values for each entity.
-    Dictionary keys are entity ids. Dictionary values are lists of entity's data values."""
+    Dictionary keys are entity ids. Dictionary values are lists of entity's data values.
+    """
     data = {}
     raw_data = (
         Value.objects.filter(source_datas__source_entity__in=entities)

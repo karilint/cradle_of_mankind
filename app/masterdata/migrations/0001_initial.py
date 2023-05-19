@@ -7,7 +7,6 @@ import masterdata.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [

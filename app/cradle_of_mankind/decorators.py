@@ -56,7 +56,6 @@ def remember_last_query_params(url_name, query_params):
 
     def do_decorator(view_func):
         def decorator(*args, **kwargs):
-
             request = args[0]
 
             key_prefix = url_name + "_"
@@ -89,7 +88,6 @@ def remember_last_query_params(url_name, query_params):
 def query_debugger(func):
     @functools.wraps(func)
     def inner_func(*args, **kwargs):
-
         reset_queries()
 
         start_queries = len(connection.queries)

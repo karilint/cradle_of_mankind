@@ -7,7 +7,6 @@ import django_userforeignkey.models.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("scans", "0002_auto_20201110_1525"),

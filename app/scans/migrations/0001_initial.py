@@ -7,7 +7,6 @@ import simple_history.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
