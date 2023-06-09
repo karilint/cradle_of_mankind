@@ -237,7 +237,12 @@
 
         <div class="socialaccount_ballot">
           <ul class="socialaccount_providers w3-center">
-            {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+            <li class="socialaccount_provider">
+              <form class="orcid" action="{% provider_login_url 'orcid' %}" method="post">
+                {% csrf_token %}
+                <button type="submit">Connect with ORCID</button>
+              </form>
+            </li>
           </ul>
         </div>
       {% include "socialaccount/snippets/login_extra.html" %}

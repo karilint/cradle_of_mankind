@@ -312,7 +312,8 @@ ul.socialaccount_providers {
   padding: 0;
 }
 
-.socialaccount_provider {
+.socialaccount_provider button {
+  cursor: pointer;
   padding: 5px;
   border-radius: 2px;
   border: 1px solid grey;
@@ -320,11 +321,11 @@ ul.socialaccount_providers {
   background-color: #f3f3f3;
 }
 
-.socialaccount_provider:hover {
+.socialaccount_provider button:hover {
   box-shadow: 0px 0px 5px grey;
 }
 
-.socialaccount_provider::before {
+.orcid button::before {
   content: "";
   background-image:url('images/orcid.svg');
   background-size: 100% 100%;
@@ -335,3 +336,12 @@ ul.socialaccount_providers {
   top: 5px;
   margin-right: 5px;
 }
+/* .orcid button, input[type="submit"], input[type="reset"] { */
+/* 	background: none; */
+/* 	color: inherit; */
+/* 	border: none; */
+/* 	padding: 0; */
+/* 	font: inherit; */
+/* 	cursor: pointer; */
+/* 	outline: inherit; */
+/* } */
