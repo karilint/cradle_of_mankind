@@ -142,16 +142,10 @@ class Export(models.Model):
         ENDS_WITH = "endswith"
 
     file = models.FileField(
-        upload_to="exports/",
-        blank=True,
-        null=True,
-        default=None
+        upload_to="exports/", blank=True, null=True, default=None
     )
     references = models.FileField(
-        upload_to="references/", 
-        blank=True,
-        null=True, 
-        default=None
+        upload_to="references/", blank=True, null=True, default=None
     )
     file_type = models.CharField(
         max_length=3,

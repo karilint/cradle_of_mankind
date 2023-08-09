@@ -6,38 +6,101 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('tasks', '0001_initial'),
-        ('masterdata', '0001_initial'),
+        ("tasks", "0001_initial"),
+        ("masterdata", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='masterfield',
-            name='hidden',
+            model_name="masterfield",
+            name="hidden",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='masterfield',
-            name='display_order',
+            model_name="masterfield",
+            name="display_order",
             field=models.IntegerField(default=1),
         ),
         migrations.CreateModel(
-            name='Export',
+            name="Export",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file', models.FileField(blank=True, default=None, null=True, upload_to='exports/')),
-                ('references', models.FileField(blank=True, default=None, null=True, upload_to='references/')),
-                ('file_type', models.CharField(choices=[('csv', 'Csv')], default='csv', max_length=3)),
-                ('status', models.IntegerField(choices=[(1, 'Pending'), (2, 'In Progress'), (3, 'Done')], default=1)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('search', models.CharField(blank=True, max_length=255)),
-                ('matching', models.CharField(choices=[('exact', 'Exact'), ('contains', 'Contains'), ('startswith', 'Starts With'), ('endswith', 'Ends With')], max_length=10)),
-                ('case_sensitive', models.BooleanField()),
-                ('task', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, to='tasks.task')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "file",
+                    models.FileField(
+                        blank=True,
+                        default=None,
+                        null=True,
+                        upload_to="exports/",
+                    ),
+                ),
+                (
+                    "references",
+                    models.FileField(
+                        blank=True,
+                        default=None,
+                        null=True,
+                        upload_to="references/",
+                    ),
+                ),
+                (
+                    "file_type",
+                    models.CharField(
+                        choices=[("csv", "Csv")], default="csv", max_length=3
+                    ),
+                ),
+                (
+                    "status",
+                    models.IntegerField(
+                        choices=[
+                            (1, "Pending"),
+                            (2, "In Progress"),
+                            (3, "Done"),
+                        ],
+                        default=1,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("search", models.CharField(blank=True, max_length=255)),
+                (
+                    "matching",
+                    models.CharField(
+                        choices=[
+                            ("exact", "Exact"),
+                            ("contains", "Contains"),
+                            ("startswith", "Starts With"),
+                            ("endswith", "Ends With"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                ("case_sensitive", models.BooleanField()),
+                (
+                    "task",
+                    models.OneToOneField(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="tasks.task",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

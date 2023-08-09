@@ -715,7 +715,14 @@ def get_queryset_dict(queryset, key_field="pk", inner_dict_key=None):
     return dictionary
 
 
-def get_rows(search, matching, case_sensitive, user_level=1, include_hidden=False, source_id_dict=None):
+def get_rows(
+    search,
+    matching,
+    case_sensitive,
+    user_level=1,
+    include_hidden=False,
+    source_id_dict=None,
+):
     rows = []
     master_fields = MasterField.objects.filter(access_level__lte=user_level)
     if not include_hidden:
@@ -738,10 +745,16 @@ def get_rows(search, matching, case_sensitive, user_level=1, include_hidden=Fals
             )
             row.append(to_string(master_data))
         if source_id_dict:
-            source_ids = Source.objects.filter(
-                source_entities__source_datas__master_datas__master_entity=master_entity
-            ).distinct().values_list("id", flat=True)
-            converted_ids = list(map(lambda idx: str(source_id_dict[idx]), source_ids))
+            source_ids = (
+                Source.objects.filter(
+                    source_entities__source_datas__master_datas__master_entity=master_entity
+                )
+                .distinct()
+                .values_list("id", flat=True)
+            )
+            converted_ids = list(
+                map(lambda idx: str(source_id_dict[idx]), source_ids)
+            )
             row.append(",".join(converted_ids))
         rows.append(row)
     return rows

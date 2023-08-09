@@ -442,7 +442,9 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
 
     record_progress(self, 2, 4, 1, "Going through data... 2/4")
     user_level = User.objects.get(id=user_id).get_access_level()
-    rows = get_rows(search, matching, case_sensitive, user_level, True, source_id_dict)
+    rows = get_rows(
+        search, matching, case_sensitive, user_level, True, source_id_dict
+    )
     directory = os.path.join(MEDIA_ROOT, "exports")
     os.makedirs(directory, exist_ok=True)
     filename = (
@@ -455,7 +457,13 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
     with open(os.path.join(directory, filename), "w", newline="") as file:
         writer = csv.writer(file)
         for idx, row in enumerate(rows, 1):
-            record_progress(self, idx, len(rows), len(rows)//20, "Creating export files... 2/2")
+            record_progress(
+                self,
+                idx,
+                len(rows),
+                len(rows) // 20,
+                "Creating export files... 2/2",
+            )
             writer.writerow(row)
 
     record_progress(self, 4, 4, 1, "Finalizing 4/4")
