@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+  <div class="w3-card-4">
+
+    <div class="w3-container w3-blue" >
+      <h2>Export</h2>
+    </div>
+
+    <div class="w3-container w3-padding"
+      <div class='progress-wrapper'>
+        <div id='progress-bar' class='progress-bar' style="background-color: #68a9ef; width: 0%;">&nbsp;</div>
+      </div>
+      <div class="w3-container w3-padding" id="progress-bar-message">Pending...</div> 
+
+      {% if task.task_result.status == "SUCCESS" %}
+        {% if export.file %}
+          <a href="{{export.file.url}}">Export Download</a>
+        {% endif %}
+        {% if export.references %}
+          <a href="{{export.references.url}}">References Download</a>
+        {% endif %}
+      {% endif %}
+
+    </div>
+
+  </div>
+
+{% endblock content %}
+
+{% block javascript %}
+  <script>
+    // vanilla JS version
+    document.addEventListener("DOMContentLoaded", function () {
+      function customProgress(progressBarElement, progressBarMessageElement, progress) {
+        progressBarElement.style.backgroundColor = this.barColors.progress;
+        progressBarElement.style.borderstyle = 'solid';
+        progressBarElement.style.width = progress.percent + "%";
+        var description = progress.description || "";
+        if (progress.current == 0) {
+            if (progress.pending === true) {
+                progressBarMessageElement.textContent = this.messages.waiting;
+            } else {
+                progressBarMessageElement.textContent = this.messages.started;
+            }
+        } else {
+            progressBarMessageElement.textContent = progress.percent + ' % processed. ' + description;
+        }
+      }
+
+      function customSuccess(progressBarElement, progressBarMessageElement, result) {
+        result = this.getMessageDetails(result);
+        if (progressBarElement) {
+            progressBarElement.style.backgroundColor = this.barColors.success;
+        }
+        if (progressBarMessageElement) {
+            progressBarMessageElement.textContent = "Export completed. Download the files from the links below.";
+        }
+        if ("{{task.task_result.status}}" !== "SUCCESS") {
+            window.location.reload()
+        }
+      }
+
+      function customError(progressBarElement, progressBarMessageElement, excMessage, data) {
+        progressBarElement.style.backgroundColor = this.barColors.error;
+        excMessage = excMessage || '';
+        progressBarMessageElement.textContent = excMessage;
+      }
+
+      var progressUrl = "{% url 'celery_progress:task_status' task.task_id %}";
+      CeleryProgressBar.initProgressBar(progressUrl, {
+        onProgress: customProgress,
+        onSuccess: customSuccess,
+        onError: customError,
+
+      });
+    });
+  </script>
+  <script src="{% static 'celery_progress/celery_progress.js' %}"></script>
+{% endblock javascript %}

@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models.deletion import CASCADE, SET_NULL, PROTECT, RESTRICT
 
 from users.models import User
+from tasks.models import Task
 
 
 class Source(models.Model):
@@ -72,7 +73,8 @@ class MasterField(models.Model):
     name = models.CharField(max_length=255, unique=True)
     abbreviation = models.CharField(max_length=255, blank=True, default="")
     primary_key = models.BooleanField(default=False)
-    display_order = models.IntegerField(null=True, default=None)
+    display_order = models.IntegerField(default=1)
+    hidden = models.BooleanField(default=False)
     description = models.TextField(blank=True)
     access_level = models.IntegerField(
         choices=AccessLevels.choices, default=AccessLevels.GUEST
@@ -122,3 +124,50 @@ class EditComment(models.Model):
 
     class Meta:
         default_related_name = "edit_comments"
+
+
+class Export(models.Model):
+    class ExportType(models.TextChoices):
+        CSV = "csv"
+
+    class Status(models.IntegerChoices):
+        PENDING = 1
+        IN_PROGRESS = 2
+        DONE = 3
+
+    class MatchingType(models.TextChoices):
+        EXACT = "exact"
+        CONTAINS = "contains"
+        STARTS_WITH = "startswith"
+        ENDS_WITH = "endswith"
+
+    file = models.FileField(
+        upload_to="exports/",
+        blank=True,
+        null=True,
+        default=None
+    )
+    references = models.FileField(
+        upload_to="references/", 
+        blank=True,
+        null=True, 
+        default=None
+    )
+    file_type = models.CharField(
+        max_length=3,
+        choices=ExportType.choices,
+        default=ExportType.CSV,
+    )
+    status = models.IntegerField(
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    task = models.OneToOneField(Task, on_delete=SET_NULL, null=True)
+    user = models.ForeignKey(User, null=True, on_delete=CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    search = models.CharField(max_length=255, blank=True)
+    matching = models.CharField(
+        max_length=10,
+        choices=MatchingType.choices,
+    )
+    case_sensitive = models.BooleanField()

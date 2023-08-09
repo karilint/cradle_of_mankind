@@ -14,6 +14,7 @@
               <th>Field</th>
               <th>Display Order</th>
               <th>Primary Key</th>
+              <th>Hidden</th>
               <th>Access Level</th>
               <th>Edit</th>
           </tr>
@@ -22,12 +23,13 @@
         {% for field in master_fields %}
           <tr>
               <td>{{field.name}}</td>
-              {% if field.display_order %}
-                <td>{{field.display_order}}</td>
-              {% else %}
-                <td>Hidden</td>
-              {% endif %}
+              <td>{{field.display_order}}</td>
               {% if field.primary_key %}
+                <td>Yes</td>
+              {% else %}
+                <td>No</td>
+              {% endif %}
+              {% if field.hidden %}
                 <td>Yes</td>
               {% else %}
                 <td>No</td>

@@ -12,10 +12,12 @@ from celery_progress.backend import ProgressRecorder
 from django_celery_results.models import TaskResult
 from django.conf import settings
 from django.db import transaction
+from django.core.files import File
 
 from tasks.utils import record_progress, set_task_state
 from quality_control.models import AnnotationField
 
+from cradle_of_mankind.settings import MEDIA_ROOT
 from .utils import (
     get_queryset_dict,
     get_master_source_data_ids,
@@ -24,8 +26,10 @@ from .utils import (
     get_source_key,
     get_master_key_for_source_entity,
     get_master_value,
-    stage4_post,
+    get_rows,
+    get_user_access_level,
 )
+from users.models import User
 from .models import (
     Source,
     SourceField,
@@ -36,6 +40,7 @@ from .models import (
     MasterData,
     MasterSourceData,
     Value,
+    Export,
 )
 
 
@@ -398,3 +403,65 @@ def delete_master(self, source_id):
         source.masterdata_stage = 0
         source.masterdata_rules = None
         source.save()
+
+
+@shared_task(bind=True)
+def export_to_csv(self, user_id, search, matching, case_sensitive):
+    logger.info(f"Starting masterdata export")
+    export = Export.objects.get(task__task_id=self.request.id)
+    export.status = Export.Status.IN_PROGRESS
+    export.save()
+    set_task_state(self, "PROGRESS")
+    logger.info(
+        f"Creating export for master entities (search='{search}', matching={matching}, case_sensitive={case_sensitive})"
+    )
+
+    record_progress(self, 1, 4, 1, "Creating reference file... 1/4")
+    ref_rows = []
+    source_id_dict = dict()
+    sources = Source.objects.all().order_by("name")
+    ref_rows.append(["Reference ID", "Reference"])
+    for idx, source in enumerate(sources, 1):
+        reference = source.reference if source.reference else source.name
+        ref_rows.append([idx, reference])
+        source_id_dict[source.id] = idx
+    directory = os.path.join(MEDIA_ROOT, "references")
+    os.makedirs(directory, exist_ok=True)
+    filename = (
+        datetime.now().strftime("%Y_%m_%d_%H_%M_%S_")
+        + User.objects.get(id=user_id).username
+        + ".csv"
+    )
+    with open(os.path.join(directory, filename), "w", newline="") as file:
+        writer = csv.writer(file)
+        for idx, row in enumerate(ref_rows, 1):
+            writer.writerow(row)
+    with open(os.path.join(directory, filename), "r") as file:
+        export.references = File(file, name=filename)
+        export.save()
+
+    record_progress(self, 2, 4, 1, "Going through data... 2/4")
+    user_level = User.objects.get(id=user_id).get_access_level()
+    rows = get_rows(search, matching, case_sensitive, user_level, True, source_id_dict)
+    directory = os.path.join(MEDIA_ROOT, "exports")
+    os.makedirs(directory, exist_ok=True)
+    filename = (
+        datetime.now().strftime("%Y_%m_%d_%H_%M_%S_")
+        + User.objects.get(id=user_id).username
+        + ".csv"
+    )
+
+    record_progress(self, 3, 4, 1, "Creating export files... 3/4")
+    with open(os.path.join(directory, filename), "w", newline="") as file:
+        writer = csv.writer(file)
+        for idx, row in enumerate(rows, 1):
+            record_progress(self, idx, len(rows), len(rows)//20, "Creating export files... 2/2")
+            writer.writerow(row)
+
+    record_progress(self, 4, 4, 1, "Finalizing 4/4")
+    with open(os.path.join(directory, filename), "r") as file:
+        export.status = Export.Status.DONE
+        export.file = File(file, name=filename)
+        export.save()
+
+    logger.info(f"Export created.")

@@ -68,5 +68,6 @@ urlpatterns = [
     ),
     path("", index, name="masterdata-index"),
     path("sources/view/<int:source_pk>", source_view, name="source-view"),
-    path("export", export_to_csv, name="export"),
+    path("export", export_masterdata, name="export"),
+    path("export/view/<int:export_pk>", export_view, name="export-view"),
 ]

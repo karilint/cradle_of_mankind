@@ -715,9 +715,11 @@ def get_queryset_dict(queryset, key_field="pk", inner_dict_key=None):
     return dictionary
 
 
-def get_rows(search, matching, case_sensitive):
+def get_rows(search, matching, case_sensitive, user_level=1, include_hidden=False, source_id_dict=None):
     rows = []
-    master_fields = MasterField.objects.exclude(display_order=None)
+    master_fields = MasterField.objects.filter(access_level__lte=user_level)
+    if not include_hidden:
+        master_fields = master_fields.exclude(hidden=True)
     master_entities = get_master_entities(search, matching, case_sensitive)
     master_datas = MasterData.objects.select_related("value").filter(
         master_entity__in=master_entities
@@ -725,7 +727,9 @@ def get_rows(search, matching, case_sensitive):
     master_data_dict = get_queryset_dict(
         master_datas, "master_entity_id", "master_field_id"
     )
-    rows.append(master_fields.values_list("name", flat=True))
+    rows.append(list(master_fields.values_list("name", flat=True)))
+    if source_id_dict:
+        rows[0].append("Source References")
     for master_entity in master_entities:
         row = []
         for master_field in master_fields:
@@ -733,6 +737,12 @@ def get_rows(search, matching, case_sensitive):
                 master_field.id
             )
             row.append(to_string(master_data))
+        if source_id_dict:
+            source_ids = Source.objects.filter(
+                source_entities__source_datas__master_datas__master_entity=master_entity
+            ).distinct().values_list("id", flat=True)
+            converted_ids = list(map(lambda idx: str(source_id_dict[idx]), source_ids))
+            row.append(",".join(converted_ids))
         rows.append(row)
     return rows
 

@@ -30,4 +30,5 @@ class MasterFieldForm(forms.ModelForm):
             "access_level",
             "description",
             "primary_key",
+            "hidden",
         ]

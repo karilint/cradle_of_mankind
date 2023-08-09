@@ -24,6 +24,7 @@ from .tasks import (
     create_master_data,
     edit_master_data,
     delete_master,
+    export_to_csv,
 )
 from .utils import *
 from .models import (
@@ -35,6 +36,7 @@ from .models import (
     MasterData,
     Value,
     EditComment,
+    Export,
 )
 
 import logging
@@ -64,7 +66,7 @@ def index(request):
     show_table = MasterEntity.objects.count() > 0
     master_fields = MasterField.objects.filter(
         access_level__lte=user_level
-    ).exclude(display_order=None)
+    ).filter(hidden=False)
     master_entities = get_master_entities_page(
         request, search, matching, case_sensitive, page_size
     )
@@ -533,7 +535,7 @@ def master_list(request):
     user_level = get_user_access_level(request)
     master_fields = MasterField.objects.filter(
         access_level__lte=user_level
-    ).exclude(display_order=None)
+    ).filter(hidden=False)
     master_entities = get_master_entities_page(
         request, search, matching, case_sensitive, page_size
     )
@@ -850,22 +852,54 @@ class Echo:
 
 
 @login_required
-def export_to_csv(request):
-    """A view that streams a large CSV file."""
-
+def export_masterdata(request):
     search = request.GET.get("search", default="").strip()
     matching = request.GET.get("matching", default="exact")
     case_sensitive = request.GET.get("case-sensitive", default="yes")
 
-    logger.info(
-        f"Creating export for master entities (search='{search}', matching={matching}, case_sensitive={case_sensitive})"
+    task_id = uuid()
+    task_name = "Masterdata export"
+    user = request.user
+    info = {
+        "task_name": task_name,
+        "export_status": "PENDING",
+    }
+    task_result = TaskResult.objects.create(
+        task_id=task_id, task_name=task_name
     )
-    rows = get_rows(search, matching, case_sensitive)
-    pseudo_buffer = Echo()
-    writer = csv.writer(pseudo_buffer)
-    response = StreamingHttpResponse(
-        (writer.writerow(row) for row in rows), content_type="text/csv"
+    task = Task.objects.create(
+        task_id=task_id,
+        task_result=task_result,
+        user=user,
+        info=json.dumps(info),
     )
-    response["Content-Disposition"] = 'attachment; filename="masterdata.csv"'
-    logger.info(f"Export created.")
-    return response
+    new_export = Export()
+    new_export.task = task
+    new_export.user = request.user
+    new_export.status = Export.Status.PENDING
+    new_export.search = search
+    new_export.matching = matching
+    new_export.case_sensitive = True if case_sensitive == "yes" else False
+    new_export.save()
+
+    export_to_csv.apply_async(
+        (user.id, search, matching, case_sensitive),
+        task_id=task_id,
+    )
+    return redirect("export-view", new_export.id)
+
+
+@login_required
+def export_view(request, export_pk):
+    export = Export.objects.get(pk=export_pk)
+    if export.user != request.user:
+        return redirect("export")
+    task = Task.objects.select_related("task_result").get(
+        task_id=export.task.task_id
+    )
+    context = {
+        "export": export,
+        "task": task,
+        "task_info": json.loads(task.info),
+    }
+    return render(request, "masterdata/export_view.html", context)
