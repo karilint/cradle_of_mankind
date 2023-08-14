@@ -3,26 +3,52 @@
 
 {% block content %}
 
-  <h2>Edit the display order</h2>
+  <h2>Drag rows to edit the display order</h2>
 
-  <form class="w3-margin w3-padding" method="POST">
-    {% csrf_token %}
-    {% for master_field in master_fields %}
-      <label for="{{ master_field.name }}">{{ master_field.name }}: </label>
-      <select class="master_field_selects" name="{{ master_field.name }}" id="{{ master_field.name }}">
-        <option value="0">Hidden</option>
-        {% for option in options %}
-          {% if master_field.display_order == option %}
-            <option value="{{option}}" selected>{{option}}</option>
+  <button title="Requires order changes" class="w3-btn w3-green w3-round-large requires-changes" disabled>Save changes</button>
+  <a href="{% url 'master-fields' %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Primary Key</th>
+        <th>Hidden</th>
+        <th>Access Level</th>
+        <th>Drag</th>
+      </tr>
+    </thead>
+    <tbody id="master-fields">
+      {% for master_field in master_fields %}
+        <tr data-id="{{master_field.id}}">
+          <td>{{master_field.name}}</td>
+          {% if master_field.primary_key %}
+            <td>Yes</td>
           {% else %}
-            <option value="{{option}}">{{option}}</option>
+            <td>No</td>
           {% endif %}
-        {% endfor %}
-      </select>
-    {% endfor %}
-    <button class="w3-btn w3-grey w3-round-large" type="submit">Confirm</button>
-    <a href="{% url 'master-fields' %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
+          {% if master_field.hidden %}
+            <td>Yes</td>
+          {% else %}
+            <td>No</td>
+          {% endif %}
+          <td>{{master_field.get_access_level_display}}</td>
+          <td class="handle"><i class="material-icons">drag_handle</i></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form id="orderingForm" method="POST">
+    {% csrf_token %}
+    <input type="hidden" id="orderingInput" name="ordering">
   </form>
+  <button title="Requires order changes"  class="w3-btn w3-green w3-round-large requires-changes" disabled>Save changes</button>
+  <a href="{% url 'master-fields' %}" class="w3-btn w3-grey w3-round-large">Cancel</a>
 
 
 {% endblock content %}
+
+{% block javascript %}
+  <script type="text/javascript" src="{% static 'masterdata/sortable.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'masterdata/master_fields_edit_display_order.js' %}"></script>
+{% endblock javascript %}

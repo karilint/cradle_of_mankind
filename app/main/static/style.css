@@ -2,6 +2,18 @@ html, body, h1, h2, h3, h4, h5, h6 {
   font-family: "Roboto", sans-serif;
 }
 
+.handle {
+  cursor: grab;
+}
+
+.dragged {
+  opacity: 0.01;
+}
+
+.sortableChosen {
+  background-color: lightslategrey !important;
+}
+
 a .requires-login:hover:after {
   position: absolute;
   top: 0;

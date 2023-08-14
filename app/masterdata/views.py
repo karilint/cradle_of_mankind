@@ -18,7 +18,11 @@ from django.shortcuts import redirect, render
 from celery import uuid
 from django_celery_results.models import TaskResult
 
-from .forms import MasterFieldForm, SourceDataImportForm
+from .forms import (
+    MasterFieldForm,
+    MasterFieldOrderingForm,
+    SourceDataImportForm,
+)
 from .tasks import (
     import_source_data,
     create_master_data,
@@ -446,27 +450,28 @@ def master_field_delete(request, master_field_pk):
 @login_required
 @user_passes_test(user_is_data_admin)
 def master_field_edit_display_order(request):
-    master_fields = MasterField.objects.order_by("name")
+    master_fields = MasterField.objects.all()
     if request.method == "POST":
-        for field in master_fields:
-            new_value = request.POST[field.name]
-            if new_value == "0":
-                field.display_order = None
-            else:
-                field.display_order = int(new_value)
-            field.save()
+        form = MasterFieldOrderingForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                ordered_ids = form.cleaned_data["ordering"].split(",")
+                master_field_dict = get_queryset_dict(master_fields)
+                current_order = 1
+                for idx_str in ordered_ids:
+                    idx = int(idx_str)
+                    master_field_dict[idx].display_order = current_order
+                    current_order += 1
+                MasterField.objects.bulk_update(
+                    list(master_field_dict.values()),
+                    ["display_order"],
+                )
         return redirect("master-fields")
-    options = list(range(1, len(master_fields) + 1))
-    current_display_orders = {}
-    for field in master_fields:
-        current_display_orders[field.name] = field.display_order
     return render(
         request,
         "masterdata/master_field_edit_display_order.html",
         {
             "master_fields": master_fields,
-            "options": options,
-            "current_display_orders": current_display_orders,
         },
     )
 

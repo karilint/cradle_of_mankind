@@ -32,3 +32,7 @@ class MasterFieldForm(forms.ModelForm):
             "primary_key",
             "hidden",
         ]
+
+
+class MasterFieldOrderingForm(forms.Form):
+    ordering = forms.CharField()

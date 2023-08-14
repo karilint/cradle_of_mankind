@@ -80,6 +80,16 @@ class MasterField(models.Model):
         choices=AccessLevels.choices, default=AccessLevels.GUEST
     )
 
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            last_id = self.objects.all().aggregate(
+                largest=models.Max("display_order")
+            )["largest"]
+            if last_id is not None:
+                self.display_order = last_id + 1
+
+        super(MasterField, self).save(*args, **kwargs)
+
     class Meta:
         default_related_name = "master_fields"
         ordering = ["display_order"]
