@@ -452,6 +452,7 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
     filename = (
         datetime.now().strftime("%Y_%m_%d_%H_%M_%S_")
         + User.objects.get(id=user_id).username
+        + "_export"
         + ".csv"
     )
 
