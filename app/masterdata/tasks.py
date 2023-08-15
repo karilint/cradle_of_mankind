@@ -415,8 +415,8 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
     logger.info(
         f"Creating export for master entities (search='{search}', matching={matching}, case_sensitive={case_sensitive})"
     )
-
     record_progress(self, 1, 4, 1, "Creating reference file... 1/4")
+    logger.info(f"Creating reference file... 1/4.")
     ref_rows = []
     source_id_dict = dict()
     sources = Source.objects.all().order_by("name")
@@ -430,6 +430,7 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
     filename = (
         datetime.now().strftime("%Y_%m_%d_%H_%M_%S_")
         + User.objects.get(id=user_id).username
+        + "_reference"
         + ".csv"
     )
     with open(os.path.join(directory, filename), "w", newline="") as file:
@@ -440,7 +441,8 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
         export.references = File(file, name=filename)
         export.save()
 
-    record_progress(self, 2, 4, 1, "Going through data... 2/4")
+    record_progress(self, 2, 4, 1, "Going through export data... 2/4")
+    logger.info(f"Going through export data... 2/4.")
     user_level = User.objects.get(id=user_id).get_access_level()
     rows = get_rows(
         search, matching, case_sensitive, user_level, True, source_id_dict
@@ -453,20 +455,15 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
         + ".csv"
     )
 
-    record_progress(self, 3, 4, 1, "Creating export files... 3/4")
+    record_progress(self, 3, 4, 1, "Creating export file... 3/4")
+    logger.info(f"Creating export file... 3/4.")
     with open(os.path.join(directory, filename), "w", newline="") as file:
         writer = csv.writer(file)
         for idx, row in enumerate(rows, 1):
-            record_progress(
-                self,
-                idx,
-                len(rows),
-                len(rows) // 20,
-                "Creating export files... 2/2",
-            )
             writer.writerow(row)
 
-    record_progress(self, 4, 4, 1, "Finalizing 4/4")
+    record_progress(self, 4, 4, 1, "Finalizing export... 4/4")
+    logger.info(f"Finalizing export... 4/4.")
     with open(os.path.join(directory, filename), "r") as file:
         export.status = Export.Status.DONE
         export.file = File(file, name=filename)

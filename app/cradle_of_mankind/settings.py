@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "masterdata.apps.MasterdataConfig",
     "contact.apps.ContactConfig",
     "tasks.apps.TasksConfig",
+    "django_mysql",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",

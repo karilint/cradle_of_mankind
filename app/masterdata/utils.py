@@ -2,6 +2,7 @@ from masterdata.templatetags.my_filters import to_string
 from django.db import transaction
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.contrib import messages
+from django_mysql.models import GroupConcat
 from cradle_of_mankind import settings
 from csv import DictReader
 import json
@@ -22,8 +23,6 @@ from .models import (
 import logging
 
 logger = logging.getLogger(__name__)
-
-from django.db import connection, reset_queries
 
 
 def get_user_access_level(request):
@@ -727,7 +726,9 @@ def get_rows(
     master_fields = MasterField.objects.filter(access_level__lte=user_level)
     if not include_hidden:
         master_fields = master_fields.exclude(hidden=True)
-    master_entities = get_master_entities(search, matching, case_sensitive)
+    master_entities = get_master_entities(
+        search, matching, case_sensitive
+    ).order_by("master_key")
     master_datas = MasterData.objects.select_related("value").filter(
         master_entity__in=master_entities
     )
@@ -736,6 +737,12 @@ def get_rows(
     )
     rows.append(list(master_fields.values_list("name", flat=True)))
     if source_id_dict:
+        master_entities = master_entities.annotate(
+            source_ids=GroupConcat(
+                "master_datas__source_datas__source_entity__source__id",
+                distinct=True,
+            )
+        )
         rows[0].append("Source References")
     for master_entity in master_entities:
         row = []
@@ -745,15 +752,9 @@ def get_rows(
             )
             row.append(to_string(master_data))
         if source_id_dict:
-            source_ids = (
-                Source.objects.filter(
-                    source_entities__source_datas__master_datas__master_entity=master_entity
-                )
-                .distinct()
-                .values_list("id", flat=True)
-            )
+            source_ids = master_entity.source_ids.split(",")
             converted_ids = list(
-                map(lambda idx: str(source_id_dict[idx]), source_ids)
+                map(lambda idx: str(source_id_dict[int(idx)]), source_ids)
             )
             row.append(",".join(converted_ids))
         rows.append(row)
