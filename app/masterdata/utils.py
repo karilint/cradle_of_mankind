@@ -735,7 +735,9 @@ def get_rows(
     master_data_dict = get_queryset_dict(
         master_datas, "master_entity_id", "master_field_id"
     )
-    rows.append(list(master_fields.values_list("name", flat=True)))
+    rows.append(
+        ["Entity ID"] + list(master_fields.values_list("name", flat=True))
+    )
     if source_id_dict:
         master_entities = master_entities.annotate(
             source_ids=GroupConcat(
@@ -745,7 +747,7 @@ def get_rows(
         )
         rows[0].append("Source References")
     for master_entity in master_entities:
-        row = []
+        row = [master_entity.id]
         for master_field in master_fields:
             master_data = master_data_dict[master_entity.id].get(
                 master_field.id
