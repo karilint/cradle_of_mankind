@@ -9,7 +9,7 @@ charset-normalizer==2.0.12
 cryptography==41.0.4
 debugpy==1.5.1
 defusedxml==0.7.1
-Django==4.1.9
+Django==4.1.13
 django-allauth==0.48.0
 django-celery-results==2.4.0
 django-crispy-forms==1.14.0
