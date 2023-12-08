@@ -646,7 +646,9 @@ def master_entity_edit(
             try:
                 new_value = Value.objects.get(value=request.POST["new_value"])
             except Value.DoesNotExist:
-                new_value = Value.objects.create(request.POST["new_value"])
+                new_value = Value.objects.create(
+                    value=request.POST["new_value"]
+                )
             prev_value = master_data.value
             master_data.value = new_value
             master_data.save()
