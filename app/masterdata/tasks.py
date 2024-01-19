@@ -461,6 +461,8 @@ def export_to_csv(self, user_id, search, matching, case_sensitive):
     with open(os.path.join(directory, filename), "w", newline="") as file:
         writer = csv.writer(file)
         for idx, row in enumerate(rows, 1):
+            if row[-1] == "error":
+                continue
             writer.writerow(row)
 
     record_progress(self, 4, 4, 1, "Finalizing export... 4/4")

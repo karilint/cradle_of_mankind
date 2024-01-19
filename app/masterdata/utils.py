@@ -754,11 +754,15 @@ def get_rows(
             )
             row.append(to_string(master_data))
         if source_id_dict:
-            source_ids = master_entity.source_ids.split(",")
-            converted_ids = list(
-                map(lambda idx: str(source_id_dict[int(idx)]), source_ids)
-            )
-            row.append(",".join(converted_ids))
+            try:
+                source_ids = master_entity.source_ids.split(",")
+                converted_ids = list(
+                    map(lambda idx: str(source_id_dict[int(idx)]), source_ids)
+                )
+                row.append(",".join(converted_ids))
+            except AttributeError as e:
+                logger.warning(f"{master_entity}: {e}")
+                row.append("error")
         rows.append(row)
     return rows
 
