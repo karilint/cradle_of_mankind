@@ -41,7 +41,7 @@
                     </td>
                     <td>
                       <select id="{{source_field.id}}_{{i}}_ordering_{{num}}" name="{{source_field.id}}_{{i}}_ordering_{{num}}">
-                        {% for order in 10|range %}
+                        {% for order in 20|range %}
                           {% if rules|get_item:source_field|get_item:i|get_item:'ordering' == order %}
                             <option value="{{order}}" selected>{{order}}</option>
                           {% else %}
@@ -75,7 +75,7 @@
                   </td>
                   <td>
                     <select id="{{source_field.id}}_ordering_{{num}}" name="{{source_field.id}}_ordering_{{num}}">
-                      {% for i in 10|range %}
+                      {% for i in 20|range %}
                         {% if rules|get_item:source_field|get_item:1|get_item:'ordering' == i %}
                           <option value="{{i}}" selected>{{i}}</option>
                         {% else %}
