@@ -82,7 +82,7 @@ class MasterField(models.Model):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            last_id = self.objects.all().aggregate(
+            last_id = MasterField.objects.all().aggregate(
                 largest=models.Max("display_order")
             )["largest"]
             if last_id is not None:
