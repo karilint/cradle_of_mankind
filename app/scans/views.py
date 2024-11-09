@@ -1,33 +1,26 @@
-import os
 import json
+import logging
+import os
 
-from cradle_of_mankind.settings import MEDIA_ROOT
-from cradle_of_mankind.decorators import remember_last_query_params
-from users.views import user_is_data_admin
-from tasks.models import Task
-from django.contrib import messages
 from celery import uuid
-from django_celery_results.models import TaskResult
-
-
-from django.db import transaction
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models.query_utils import Q
 from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
-from .models import Scan
-from .forms import ScanDataImportForm, ScanEditForm
-from django.contrib.auth.mixins import (
-    LoginRequiredMixin,
-    UserPassesTestMixin,
-)
-from django.views.generic import (
-    ListView,
-    DetailView,
-    UpdateView,
-)
+from django.views.generic import DetailView, ListView, UpdateView
+from django_celery_results.models import TaskResult
 
-from .tasks import save_scan_data
+from cradle_of_mankind.settings import MEDIA_ROOT
+from tasks.models import Task
+from users.views import user_is_data_admin
+
+from .forms import ScanDataImportForm, ScanEditForm
+from .models import Scan
+from .tasks import create_blank_scan_objects, save_scan_data
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -86,9 +79,9 @@ class ScanSearchView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         context["query"] = self.request.GET.get("query")
         context["type"] = self.request.GET.get("type")
         context["status"] = self.request.GET.get("status")
-        context[
-            "whole_query"
-        ] = f"?query={context['query']}&type={context['type']}&status={context['status']}"
+        context["whole_query"] = (
+            f"?query={context['query']}&type={context['type']}&status={context['status']}"
+        )
         return context
 
     def test_func(self):
@@ -134,7 +127,31 @@ class ScanEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 @login_required
 @user_passes_test(user_is_data_admin)
 def import_scans(request):
-    if request.method == "POST":
+    scans_path = os.path.join(MEDIA_ROOT, "scans")
+    scan_images = os.listdir(scans_path)
+    scan_image_ids = set(map(lambda i: int(i.split(".")[0]), scan_images))
+    scan_object_ids = set(Scan.objects.all().values_list("id", flat=True))
+    missing_scan_object_ids = scan_image_ids - scan_object_ids
+    if request.method == "POST" and "btn-add-blanks" in request.POST:
+        logger.info("Starting the task of creating blank scan objects")
+        task_id = uuid()
+        task_name = "Create Blank Scan Objects"
+        user = request.user
+        info = {"task_name": task_name}
+        task_result = TaskResult.objects.create(
+            task_id=task_id, task_name=task_name
+        )
+        task = Task.objects.create(
+            task_id=task_id,
+            task_result=task_result,
+            user=user,
+            info=json.dumps(info),
+        )
+        create_blank_scan_objects.apply_async(
+            (list(missing_scan_object_ids), user.id), task_id=task_id
+        )
+        return redirect("task-view", task_id)
+    elif request.method == "POST":
         form = ScanDataImportForm(request.POST, request.FILES)
         if form.is_valid():
             scan_data = json.load(request.FILES["file"])
@@ -153,6 +170,12 @@ def import_scans(request):
             )
             save_scan_data.apply_async((scan_data, user.id), task_id=task_id)
             return redirect("task-view", task_id)
-    else:
-        form = ScanDataImportForm()
-    return render(request, "scans/scan_import.html", {"form": form})
+    form = ScanDataImportForm()
+    return render(
+        request,
+        "scans/scan_import.html",
+        {
+            "form": form,
+            "missing_scan_data_count": len(missing_scan_object_ids),
+        },
+    )

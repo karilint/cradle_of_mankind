@@ -12,8 +12,17 @@
     <form class="w3-container w3-padding" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
       {{ form|crispy }}
-      <button class="w3-btn w3-blue w3-round-large" type="submit">Upload!</button>
+      <button class="w3-btn w3-blue w3-round-large" type="submit">Import JSON data</button>
     </form>
+    {% if missing_scan_data_count > 0 %}
+      <form class="w3-container w3-padding" method="POST" >
+        {% csrf_token %}
+        <p>Scan images without any data: {{ missing_scan_data_count }}</p>
+      <button name="btn-add-blanks" class="w3-btn w3-blue w3-round-large" type="submit">Create blank Scan objects for all Scan images without one ({{ missing_scan_data_count }})</button>
+      </form>
+    {% else %}
+      <p class="w3-padding">All scan images have a corresponding scan object created.</p>
+    {% endif %}
 
   </div>
 
