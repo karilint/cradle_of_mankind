@@ -8,13 +8,20 @@ import zooniverse.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('zooniverse', '0010_import'),
+        ("zooniverse", "0010_import"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='import',
-            name='file',
-            field=models.FileField(upload_to=zooniverse.models.Import.name_based_upload, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['csv'])]),
+            model_name="import",
+            name="file",
+            field=models.FileField(
+                upload_to=zooniverse.models.Import.name_based_upload,
+                validators=[
+                    django.core.validators.FileExtensionValidator(
+                        allowed_extensions=["csv"]
+                    )
+                ],
+            ),
         ),
     ]
