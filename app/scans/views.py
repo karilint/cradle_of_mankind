@@ -2,6 +2,7 @@ import json
 import logging
 import os
 
+from pathlib import Path
 from celery import uuid
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -29,6 +30,7 @@ def import_scan_images(request):
     if request.method == "POST":
         images = request.FILES.getlist("images")
         scans_path = os.path.join(MEDIA_ROOT, "scans")
+        Path(scans_path).mkdir(parents=True, exist_ok=True)
         for image in images:
             destination = open(os.path.join(scans_path, image.name), "wb+")
             for chunk in image.chunks():
@@ -128,6 +130,7 @@ class ScanEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 @user_passes_test(user_is_data_admin)
 def import_scans(request):
     scans_path = os.path.join(MEDIA_ROOT, "scans")
+    Path(scans_path).mkdir(parents=True, exist_ok=True)
     scan_images = os.listdir(scans_path)
     scan_image_ids = set(map(lambda i: int(i.split(".")[0]), scan_images))
     scan_object_ids = set(Scan.objects.all().values_list("id", flat=True))
