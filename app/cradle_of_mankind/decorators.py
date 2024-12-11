@@ -62,9 +62,9 @@ def remember_last_query_params(url_name, query_params):
 
             if is_query_params_specified(request, query_params):
                 for query_param in query_params:
-                    request.session[
-                        key_prefix + query_param
-                    ] = request.GET.get(query_param)
+                    request.session[key_prefix + query_param] = (
+                        request.GET.get(query_param)
+                    )
 
             else:
                 last_params = params_from_last_time(
