@@ -18,6 +18,7 @@ from users.models import User
 from tasks.utils import record_progress, set_task_state
 from quality_control.models import AnnotationField
 from .models import (
+    Import,
     Retirement,
     Workflow,
     Classification,
@@ -29,26 +30,18 @@ logger = get_task_logger(__name__)
 
 
 @shared_task(bind=True, name="Zooniverse Import")
-def update_zooniverse_data(self):
-    required_files = [
-        "specimen-numbers-classifications.csv",
-        "location-and-stratigraphy-classifications.csv",
-        "additional-info-card-backside-classifications.csv",
-        "specimen-taxonomy-latin-names-classifications.csv",
-        "nature-of-specimen-body-parts-classifications.csv",
-    ]
-    imports_path = os.path.join(settings.MEDIA_ROOT, "imports")
-
+def update_zooniverse_data(self, import_id):
     logger.info(f"Starting zooniverse data import")
     set_task_state(self, "PROGRESS")
 
+    import_instance = Import.objects.get(id=import_id)
     total_work = 0
     logger.info(f"Counting total work")
-    for file in required_files:
-        with open(os.path.join(imports_path, file), encoding="utf8") as f:
-            total_work += len(list(csv.DictReader(f)))
+    with open(import_instance.file.path) as f:
+        total_work += len(list(csv.DictReader(f)))
     record_progress(self, 0, total_work)
 
+    existing_scan_ids = set(Scan.objects.all().values_list("id", flat=True))
     existing_workflow_ids = set(
         Workflow.objects.all().values_list("id", flat=True)
     )
@@ -80,55 +73,54 @@ def update_zooniverse_data(self):
     new_annotations = []
     logger.info(f"Processing zooniverse data")
     current_work = 0
-    for file_number, file in enumerate(required_files, 1):
-        with open(os.path.join(imports_path, file), encoding="utf8") as f:
-            data = csv.DictReader(f)
-            logger.info(f"Processing... {file})")
-            for index, row in enumerate(data, 1):
-                eet = timezone("Europe/Helsinki")
-                created_at = eet.localize(
-                    datetime.strptime(
-                        row["created_at"], "%Y-%m-%d %H:%M:%S %Z"
-                    )
-                )
-                if created_at < eet.localize(
-                    datetime(2020, 8, 17, 14, 50, 17)
-                ):
-                    current_work += 1
-                    continue
-
-                save_workflow(row, existing_workflow_ids, new_workflows)
-                subject_id = save_subject(
-                    row, index, existing_subject_ids, new_subjects
-                )
-                retirement_id = save_retirement(
-                    row, index, eet, existing_retirement_ids, new_retirements
-                )
-                classification_id = save_classification(
-                    row,
-                    eet,
-                    existing_classification_ids,
-                    new_classifications,
-                    classifications_without_retirement,
-                    classifications_to_be_updated,
-                    retirement_id,
-                    subject_id,
-                )
-                save_annotations(
-                    row,
-                    index,
-                    existing_annotations,
-                    new_annotations,
-                    classification_id,
-                )
+    with open(import_instance.file.path) as f:
+        data = csv.DictReader(f)
+        logger.info(f"Processing...)")
+        for index, row in enumerate(data, 1):
+            eet = timezone("Europe/Helsinki")
+            created_at = eet.localize(
+                datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S %Z")
+            )
+            if created_at < eet.localize(datetime(2020, 8, 17, 14, 50, 17)):
                 current_work += 1
-                record_progress(
-                    self,
-                    current_work,
-                    total_work,
-                    100,
-                    f'Processing file "{file}" ({file_number}/5)',
-                )
+                continue
+
+            save_workflow(row, existing_workflow_ids, new_workflows)
+            subject_id = save_subject(
+                row,
+                index,
+                existing_subject_ids,
+                new_subjects,
+                existing_scan_ids,
+            )
+            retirement_id = save_retirement(
+                row, index, eet, existing_retirement_ids, new_retirements
+            )
+            classification_id = save_classification(
+                row,
+                eet,
+                existing_classification_ids,
+                new_classifications,
+                classifications_without_retirement,
+                classifications_to_be_updated,
+                retirement_id,
+                subject_id,
+            )
+            save_annotations(
+                row,
+                index,
+                existing_annotations,
+                new_annotations,
+                classification_id,
+            )
+            current_work += 1
+            record_progress(
+                self,
+                current_work,
+                total_work,
+                100,
+                f"Processing imported file...",
+            )
     logger.info("Saving zooniverse data to database...")
     record_progress(
         self,
@@ -298,31 +290,46 @@ def save_retirement(row, index, eet, existing_retirement_ids, new_retirements):
         logger.error(e)
 
 
-def save_subject(row, index, existing_subject_ids, new_subjects):
+def save_subject(
+    row, index, existing_subject_ids, new_subjects, existing_scan_ids
+):
     try:
         subject_data = json.loads(row["subject_data"])
+    except (JSONDecodeError, KeyError) as e:
+        logger.error(
+            f"Error when parsing subject data on row {index} (not including header)"
+        )
+        logger.error(f"Unexpected {repr(e)}")
+        logger.error(row)
+    else:
         for subject_id, subject in subject_data.items():
             subject_id = int(subject_id)
             if subject_id not in existing_subject_ids:
                 new_subject = Subject()
                 new_subject.id = subject_id
-                new_subject.scan_id = get_scan_id(subject["Filename"])
+                scan_filename = subject.get("Filename") or subject.get(
+                    "image_name_1"
+                )
+                if not scan_filename:
+                    raise KeyError
+                new_subject.scan_id = get_scan_id(
+                    scan_filename, existing_scan_ids
+                )
                 new_subjects.append(new_subject)
                 existing_subject_ids.add(subject_id)
             return subject_id
-    except (JSONDecodeError, KeyError) as e:
-        logger.error(f"ERROR WHEN PARSING SUBJECT DATA (ROW {index})")
-        logger.error(row)
-        logger.error(e)
 
 
-def get_scan_id(scan_filename):
+def get_scan_id(scan_filename, existing_scan_ids):
     first_digit_idx = -1
     for i in range(len(scan_filename)):
         if scan_filename[i].isdigit():
             first_digit_idx = i
             break
-    return int(scan_filename[first_digit_idx : scan_filename.find(".")])
+    scan_id = int(scan_filename[first_digit_idx : scan_filename.find(".")])
+    if scan_id not in existing_scan_ids:
+        raise Exception(f"Scan with ID {scan_id} does not exist")
+    return scan_id
 
 
 def save_workflow(row, existing_workflow_ids, new_workflows):

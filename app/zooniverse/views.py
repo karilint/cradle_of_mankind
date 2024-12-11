@@ -7,7 +7,8 @@ from django.contrib import messages
 from django.conf import settings
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import DataImportForm
+from .forms import ImportForm
+from .models import Import
 
 from celery import uuid
 from django_celery_results.models import TaskResult
@@ -32,33 +33,31 @@ def save_uploaded_file(f):
 @login_required
 @user_passes_test(user_is_data_admin)
 def import_data(request):
-    if request.method == "POST" and "btn-upload" in request.POST:
-        form = DataImportForm(request.POST, request.FILES)
+    if request.method == "POST":
+        form = ImportForm(request.POST, request.FILES)
         if form.is_valid():
-            f = request.FILES["file"]
-            save_uploaded_file(f)
-    elif request.method == "POST" and "btn-update-db" in request.POST:
-        success = check_imported_files()
-        if not success:
-            messages.warning(
-                request,
-                "Update couldn't start. Have you uploaded all the required files? (specimen-numbers-classifications.csv, location-and-stratigraphy-classifications.csv, additional-info-card-backside-classifications.csv, specimen-taxonomy-latin-names-classifications.csv, nature-of-specimen-body-parts-classifications.csv)",
+            form.instance.created_by = request.user
+            import_instance = form.save()
+            task_id = uuid()
+            task_name = "Zooniverse Import"
+            user = request.user
+            info = {"task_name": task_name}
+            task_result = TaskResult.objects.create(
+                task_id=task_id, task_name=task_name
             )
-            return redirect("import-data")
-        task_id = uuid()
-        task_name = "Zooniverse Import"
-        user = request.user
-        info = {"task_name": task_name}
-        task_result = TaskResult.objects.create(
-            task_id=task_id, task_name=task_name
+            task = Task.objects.create(
+                task_id=task_id,
+                task_result=task_result,
+                user=user,
+                info=json.dumps(info),
+            )
+            update_zooniverse_data.apply_async(
+                (import_instance.id,), task_id=task_id
+            )
+            return redirect("task-view", task_id)
+        messages.warning(
+            request,
+            "The import was not valid. Make sure you are uploading .csv file.",
         )
-        task = Task.objects.create(
-            task_id=task_id,
-            task_result=task_result,
-            user=user,
-            info=json.dumps(info),
-        )
-        update_zooniverse_data.apply_async((), task_id=task_id)
-        return redirect("task-view", task_id)
-    form = DataImportForm()
+    form = ImportForm()
     return render(request, "zooniverse/zooniverse_import.html", {"form": form})

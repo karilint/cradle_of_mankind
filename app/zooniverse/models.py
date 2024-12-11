@@ -3,6 +3,24 @@ from users.models import User
 from django.db.models.deletion import PROTECT
 from django.db.models.fields.related import ForeignKey, OneToOneField
 from scans.models import Scan
+from django.core.validators import FileExtensionValidator
+
+
+class Import(models.Model):
+    def name_based_upload(instance, filename):
+        return "imports/zooniverse/{}/{}".format(instance.created_by, filename)
+
+    file = models.FileField(
+        upload_to=name_based_upload,
+        validators=[FileExtensionValidator(allowed_extensions=["csv"])],
+    )
+    created_on = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        default=None,
+        on_delete=PROTECT,
+        related_name="zooniverse_imports",
+    )
 
 
 class Workflow(models.Model):
