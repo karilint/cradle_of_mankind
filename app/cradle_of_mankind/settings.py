@@ -215,13 +215,12 @@ LOGIN_REDIRECT_URL = "index"
 LOGIN_URL = "account_login"
 
 # Email Configuration
-SENDGRID_API_KEY = get_var("SENDGRID_API_KEY")
 EMAIL_BACKEND = get_var(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
 )
-EMAIL_HOST = "smtp.sendgrid.net"
-EMAIL_HOST_USER = "apikey"  # this is exactly the value 'apikey'
-EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+EMAIL_HOST = get_var("EMAIL_HOST")
+EMAIL_HOST_USER = get_var("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = get_var("EMAIL_HOST_PASSWORD")
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = get_var("DEFAULT_FROM_EMAIL")
