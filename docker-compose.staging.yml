@@ -1,7 +1,7 @@
 services:
 
   web:
-    image: palaeontologyhelsinki/cradle_of_humankind_staging
+    image: palaeontologyhelsinki/cradle_of_humanity_staging
     restart: unless-stopped
     ports:
       - 8000:8000
@@ -14,7 +14,7 @@ services:
     container_name: coh_web_staging
 
   celery:
-    image: palaeontologyhelsinki/cradle_of_humankind_staging
+    image: palaeontologyhelsinki/cradle_of_humanity_staging
     restart: unless-stopped
     command: celery -A cradle_of_mankind worker -l INFO --concurrency=1
     volumes:

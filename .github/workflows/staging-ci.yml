@@ -30,4 +30,4 @@ jobs:
         with:
           context: ./app
           push: true
-          tags: palaeontologyhelsinki/cradle_of_humankind_staging:latest
+          tags: palaeontologyhelsinki/cradle_of_humanity_staging:latest
