@@ -16,3 +16,7 @@ def permission_denied(request, exception):
 
 def bad_request(request, exception):
     return render(request, "errors/400.html")
+
+
+def too_many_requests(request, exception=None):
+    return render(request, "errors/429.html", status=429)
