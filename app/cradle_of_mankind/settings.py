@@ -124,6 +124,20 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
+# Allauth settings
+
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
+ACCOUNT_RATE_LIMITS = {
+    "signup": "10/h/ip",
+    "reset_password": "10/h/ip,3/h/key",
+    "social_signup": "10/h/ip",
+    "manage_email": "3/m/user",
+}
+
+# The maximum amount of email addresses a user can associate to his account
+ACCOUNT_MAX_EMAIL_ADDRESSES = 3
+
 # https://docs.allauth.org/en/latest/account/configuration.html#signup
 ACCOUNT_SIGNUP_FORM_HONEYPOT_FIELD = "phone_number"
 
@@ -141,7 +155,6 @@ SOCIALACCOUNT_PROVIDERS = {
 
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 if DEBUG:
@@ -232,6 +245,16 @@ DEFAULT_FROM_EMAIL = get_var("DEFAULT_FROM_EMAIL")
 # Celery configuration
 CELERY_BROKER_URL = get_var("CELERY_BROKER", "redis://redis:6379")
 CELERY_RESULT_BACKEND = "django-db"
+
+# Use Redis to cache allauth rate limit counters globally and not
+# per gunicorn worker. Use Redis DB 1 to avoid key collisions with
+# the Celery broker above (DB 0).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": get_var("CACHE_URL", "redis://redis:6379/1"),
+    }
+}
 
 # Django Logging
 LOGGING = {
