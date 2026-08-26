@@ -1,6 +1,7 @@
 import requests
 from django import forms
 from django.conf import settings
+from django.utils.html import format_html
 
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
@@ -9,7 +10,10 @@ class TurnstileWidget(forms.Widget):
     template_name = None
 
     def render(self, name, value, attrs=None, renderer=None):
-        return f'<div class="cf-turnstile" data-sitekey="{settings.TURNSTILE_SITE_KEY}"></div>'
+        return format_html(
+            '<div class="cf-turnstile" data-sitekey="{}"></div>',
+            settings.TURNSTILE_SITE_KEY,
+        )
 
     def value_from_datadict(self, data, files, name):
         # token arrives under Cloudflare's field name, not django's name
