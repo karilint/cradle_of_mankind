@@ -9,14 +9,21 @@ from .captcha import TurnstileField
 
 
 class CaptchaSignupForm(SignupForm):
+    """Signup form with a Cloudflare Turnstile CAPTCHA challenge"""
     captcha = TurnstileField()
 
 
 class CaptchaResetPasswordForm(ResetPasswordForm):
+    """Password-reset-request form with a Cloudflare Turnstile CAPTCHA
+    challenge
+    """
     captcha = TurnstileField()
 
 
 class CaptchaSocialSignupForm(SocialSignupForm):
+    """Fallback social signup form with a Cloudflare Turnstile CAPTCHA
+    challenge
+    """
     captcha = TurnstileField()
 
     def try_save(self, request):
