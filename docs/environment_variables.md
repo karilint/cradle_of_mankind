@@ -27,6 +27,16 @@
 - ORCID_CLIENT_ID is client id for the orcid authentication. ORCID OAuth will not work without it. 
 - ORCID_SECRET is secret for the orcid authentication. ORCID OAuth will not work without it.
 
+## CAPTCHA (Cloudflare Turnstile)
+
+- TURNSTILE_SITE_KEY is the public Turnstile site key, shown to the browser on the signup and
+  password-reset-request forms. Defaults to Cloudflare's documented always-pass test key
+  (`1x00000000000000000000AA`), so the CAPTCHA flow works in development without a Cloudflare
+  account.
+- TURNSTILE_SECRET_KEY is the matching private secret key, used server-side to verify the
+  token against Cloudflare's siteverify endpoint. Defaults to Cloudflare's matching always-pass
+  test secret (`1x0000000000000000000000000000000AA`).
+
 ## Site
 
 - SITE_NAME is the name for the website. It can be set as "Cradle of Humanity".

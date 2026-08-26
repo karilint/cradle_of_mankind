@@ -141,6 +141,21 @@ ACCOUNT_MAX_EMAIL_ADDRESSES = 3
 # https://docs.allauth.org/en/latest/account/configuration.html#signup
 ACCOUNT_SIGNUP_FORM_HONEYPOT_FIELD = "phone_number"
 
+# Cloudflare Turnstile CAPTCHA, see users/captcha.py and users/forms.py
+ACCOUNT_FORMS = {
+    "signup": "users.forms.CaptchaSignupForm",
+    "reset_password": "users.forms.CaptchaResetPasswordForm",
+}
+SOCIALACCOUNT_FORMS = {
+    "signup": "users.forms.CaptchaSocialSignupForm",
+}
+
+# defaults to Cloudflare's always-pass test keypair
+TURNSTILE_SITE_KEY = get_var("TURNSTILE_SITE_KEY", "1x00000000000000000000AA")
+TURNSTILE_SECRET_KEY = get_var(
+    "TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA"
+)
+
 SOCIALACCOUNT_PROVIDERS = {
     "orcid": {
         "BASE_DOMAIN": "orcid.org",

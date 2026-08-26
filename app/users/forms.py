@@ -1,6 +1,29 @@
+from allauth.account.forms import SignupForm, ResetPasswordForm
+from allauth.core import ratelimit
+from allauth.socialaccount.forms import SignupForm as SocialSignupForm
 from django import forms
 from users.models import User
 from django.contrib.auth.forms import UserCreationForm
+
+from .captcha import TurnstileField
+
+
+class CaptchaSignupForm(SignupForm):
+    captcha = TurnstileField()
+
+
+class CaptchaResetPasswordForm(ResetPasswordForm):
+    captcha = TurnstileField()
+
+
+class CaptchaSocialSignupForm(SocialSignupForm):
+    captcha = TurnstileField()
+
+    def try_save(self, request):
+        # allauth doesn't rate limit this view itself
+        if not ratelimit.consume(request, action="social_signup"):
+            return None, ratelimit.respond_429(request)
+        return super().try_save(request)
 
 
 class UserSignUpForm(UserCreationForm):
